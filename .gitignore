@@ -108,3 +108,5 @@ ENV/
 .vscode/
 .idea/
 
+# System
+.DS_Store
