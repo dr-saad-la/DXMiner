@@ -12,6 +12,10 @@ DXMiner
         :target: https://dxminer.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
 
+.. image:: https://img.shields.io/pypi/dr-saad-la/dxminer.svg
+   :target: https://pyup.io/repos/github/dr-saad-la/dxminer/
+   :alt: License
+
 .. image:: https://pyup.io/repos/github/dr-saad-la/dxminer/shield.svg
      :target: https://pyup.io/repos/github/dr-saad-la/dxminer/
      :alt: Updates
