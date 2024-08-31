@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dxminer"
 version = "0.1.0"
-description = "Data extensive mining, exploration, visualize, model high level Python package."
+description = "High level package for extensive data mining, exploration, visualization, modeling."
 readme = "README.rst"
 authors = [
   {name = "Dr Saad Laouadi", email = "dr.saad.laouadi@gmail.com"}
