@@ -1,3 +1,16 @@
+"""
+Report generation of different types.
+
+This module provides several utility function to generate
+different reports from the provided data.
+"""
+
+import io
+from typing import Union, List, Optional, Callable
+import pandas as pd
+import polars as pl
+
+
 def report_missingness(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
     """
     Generate a comprehensive report of missing data in the DataFrame.
@@ -461,3 +474,7 @@ def report_duplicate_cols(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
             print(
                 f"- Column '{col}' has a high percentage of duplicate values ({percent:.2f}%). Consider removing or further analyzing this column."
             )
+
+
+def missing_data_patterns(df):
+    pass
