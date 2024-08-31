@@ -110,3 +110,7 @@ ENV/
 
 # System
 .DS_Store
+
+# Other
+_requirements.txt
+requirements_dev.txt
