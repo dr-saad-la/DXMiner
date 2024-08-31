@@ -17,7 +17,7 @@ DXMiner
    :alt: License
 
 .. image:: https://pyup.io/repos/github/dr-saad-la/dxminer/shield.svg
-     :target: https://pyup.io/repos/github/dr-saad-la/dxminer/
+     :target: https://pyup.io/repos/github/drsaadla/dxminer/
      :alt: Updates
 
 DXMiner is a high-level Python package designed for comprehensive data-intensive tasks. It streamlines the processes of data mining, exploration, and visualization, and facilitates efficient model building. DXMiner is ideal for users who need a robust toolkit to handle extensive datasets and complex analytical workflows.
