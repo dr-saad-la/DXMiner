@@ -5,10 +5,207 @@ This module provides several utility function to generate
 different reports from the provided data.
 """
 
-import io
-from typing import Union, List, Optional, Callable
+from typing import Union, Dict, Any
 import pandas as pd
 import polars as pl
+
+
+def report_data_profile(df: Union[pd.DataFrame, pl.DataFrame]) -> Dict[str, Any]:
+    """
+    Generate a comprehensive data profile report for the provided DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pl.DataFrame
+        The DataFrame to profile.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing various profiling information about the
+        DataFrame.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> data = {'A': [1, 2, 2, None], 'B': ['x', 'y', 'x', 'z']}
+    >>> df = pd.DataFrame(data)
+    >>> report_data_profile(df)
+    {
+        "shape": (4, 2),
+        "missingness_report": {
+            "A": {"missing_count": 1, "missing_percentage": 25.0},
+            "B": {"missing_count": 0, "missing_percentage": 0.0}
+        },
+        "uniqueness_report": {
+            "A": {"unique_count": 3, "unique_percentage": 75.0},
+            "B": {"unique_count": 3, "unique_percentage": 75.0}
+        },
+        "category_report": {
+            "B": {"unique_categories": 3, "most_frequent_category": "x",
+             "frequency": 2}
+        },
+        "duplicate_rows": 0,
+        "duplicate_columns": []
+    }
+    """
+    report = {}
+
+    report["shape"] = df.shape
+
+    # Missingness Report
+    report["missingness_report"] = _generate_missingness_report(df)
+
+    # Uniqueness Report
+    report["uniqueness_report"] = _generate_uniqueness_report(df)
+
+    # Category Report
+    report["category_report"] = _generate_category_report(df)
+
+    # Duplicate Rows Report
+    report["duplicate_rows"] = _generate_duplicate_rows_report(df)
+
+    # Duplicate Columns Report
+    report["duplicate_columns"] = _generate_duplicate_columns_report(df)
+
+    return report
+
+
+def _generate_missingness_report(
+    df: Union[pd.DataFrame, pl.DataFrame]
+) -> Dict[str, Dict[str, float]]:
+    """
+    Generate a missingness report for the DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pl.DataFrame
+        The DataFrame to analyze.
+
+    Returns
+    -------
+    Dict[str, Dict[str, float]]
+        A dictionary with missing data statistics for each column.
+    """
+    missingness = {}
+    for col in df.columns:
+        if isinstance(df, pd.DataFrame):
+            missing_count = df[col].isna().sum()
+            total_count = df.shape[0]
+        elif isinstance(df, pl.DataFrame):
+            missing_count = df[col].null_count().sum()
+            total_count = df.shape[0]
+        missing_percentage = (missing_count / total_count) * 100
+        missingness[col] = {
+            "missing_count": missing_count,
+            "missing_percentage": missing_percentage,
+        }
+    return missingness
+
+
+def _generate_uniqueness_report(
+    df: Union[pd.DataFrame, pl.DataFrame]
+) -> Dict[str, Dict[str, float]]:
+    """
+    Generate a uniqueness report for the DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pl.DataFrame
+        The DataFrame to analyze.
+
+    Returns
+    -------
+    Dict[str, Dict[str, float]]
+        A dictionary with uniqueness statistics for each column.
+    """
+    uniqueness = {}
+    for col in df.columns:
+        if isinstance(df, pd.DataFrame):
+            unique_count = df[col].nunique()
+            total_count = df.shape[0]
+        elif isinstance(df, pl.DataFrame):
+            unique_count = df[col].n_unique()
+            total_count = df.shape[0]
+        unique_percentage = (unique_count / total_count) * 100
+        uniqueness[col] = {
+            "unique_count": unique_count,
+            "unique_percentage": unique_percentage,
+        }
+    return uniqueness
+
+
+def _generate_category_report(
+    df: Union[pd.DataFrame, pl.DataFrame]
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Generate a category report for categorical columns in the DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pl.DataFrame
+        The DataFrame to analyze.
+
+    Returns
+    -------
+    Dict[str, Dict[str, Any]]
+        A dictionary with category statistics for each categorical column.
+    """
+    category_report = {}
+    for col in df.columns:
+        if isinstance(df[col], pd.CategoricalDtype) or df[col].dtype == "object":
+            value_counts = df[col].value_counts()
+            most_frequent = value_counts.idxmax()
+            frequency = value_counts.max()
+            category_report[col] = {
+                "unique_categories": len(value_counts),
+                "most_frequent_category": most_frequent,
+                "frequency": frequency,
+            }
+    return category_report
+
+
+def _generate_duplicate_rows_report(df: Union[pd.DataFrame, pl.DataFrame]) -> int:
+    """
+    Generate a report on the number of duplicate rows in the DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pl.DataFrame
+        The DataFrame to analyze.
+
+    Returns
+    -------
+    int
+        The number of duplicate rows in the DataFrame.
+    """
+    if isinstance(df, pd.DataFrame):
+        return df.duplicated().sum()
+    elif isinstance(df, pl.DataFrame):
+        return df.is_duplicated().sum()
+
+
+def _generate_duplicate_columns_report(
+    df: Union[pd.DataFrame, pl.DataFrame]
+) -> Dict[str, int]:
+    """
+    Generate a report on the duplicate columns in the DataFrame.
+
+    Parameters
+    ----------
+    df : pd.DataFrame or pl.DataFrame
+        The DataFrame to analyze.
+
+    Returns
+    -------
+    Dict[str, int]
+        A dictionary with duplicate column names and their count.
+    """
+    if isinstance(df, pd.DataFrame):
+        col_duplicates = df.T.duplicated().sum()
+    elif isinstance(df, pl.DataFrame):
+        col_duplicates = df.columns[df.select(pl.all().is_duplicated()).columns]
+    return col_duplicates
 
 
 def report_missingness(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
@@ -170,7 +367,7 @@ def report_uniqueness(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
     # Sort by the percentage of unique values in descending order
     uniqueness_report = uniqueness_report.sort_values(by="Percentage", ascending=False)
 
-    # Add suggestions based on the percentage of unique data
+    # Suggestions based on the percentage of unique data
     conditions = [
         (uniqueness_report["Percentage"] == 100),
         (uniqueness_report["Percentage"] > 90),
@@ -192,7 +389,6 @@ def report_uniqueness(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
         include_lowest=True,
     )
 
-    # Print report in a format similar to `print(df)`
     print(uniqueness_report.to_string(index=True))
 
     # Additional summary information
@@ -212,7 +408,8 @@ def report_categoricals(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
     - Number of unique categories.
     - Most frequent category.
     - Frequency of the most frequent category.
-    - Percentage of the most frequent category relative to the total number of rows.
+    - Percentage of the most frequent category relative to the total number of
+    rows.
 
     Parameters
     ----------
@@ -254,7 +451,8 @@ def report_categoricals(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
         cat_data = df.select(pl.col(pl.Utf8))
     else:
         raise ValueError(
-            "The input data is neither a Pandas DataFrame nor a Polars DataFrame."
+            "The input data is neither a Pandas DataFrame nor a Polars"
+            "DataFrame."  # noqa: E501
         )
 
     report = []
