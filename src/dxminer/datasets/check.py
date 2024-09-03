@@ -6,7 +6,7 @@ or in a database or online repositories
 """
 
 import requests
-import urllib2
+import urllib
 import os
 import sys
 from pathlib import Path

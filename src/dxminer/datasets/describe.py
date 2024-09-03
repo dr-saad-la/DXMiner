@@ -6,6 +6,6 @@ from the specified data source.
 """
 
 
-def describe(gh_repo: str) -> None:
-    """Describe a dataset from a github repostory."""
-    pass
+# def describe(gh_repo: str) -> None:
+#     """Describe a dataset from a github repository."""
+#     pass
