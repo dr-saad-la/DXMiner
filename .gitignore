@@ -70,6 +70,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+.jupyter
 
 # Dask worker cache
 dask-worker-space/
@@ -110,7 +111,8 @@ ENV/
 
 # System
 .DS_Store
-
+notebooks
 # Other
 _requirements.txt
 requirements_dev.txt
+
