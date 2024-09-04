@@ -3,17 +3,28 @@ Global configuration constants for dxminer.
 
 
 """
-# The wrapping width for column names
-COL_WIDTH = 32
 
-# The character for separators in table formatting
-SEPARATOR_CHAR = '-'
+# Width settings
+COL_WIDTH = 25                 # The main column width
+MAX_COL_WIDTH = 32             # The max column width
+
+# Separator settings
+INNER_SEP_CHAR = '─'           # Inner separator character (between rows)
+HEADER_SEP_CHAR = "─"          # Header separator character (below the header)
+OUTER_SIDE_CHAR = "|"          # Outer table side character
+INNER_VERTICAL_CHAR = "|"      # Inner vertical separator between columns
+TOP_LEFT_CHAR = "┌"            # Custom top-left corner character
+TOP_RIGHT_CHAR = "┐"           # Custom top-right corner character
+BOTTOM_LEFT_CHAR = "└"         # Custom bottom-left corner character
+BOTTOM_RIGHT_CHAR = "┘"        # Custom bottom-right corner character
+TOP_JOIN_CHAR = "┬"            # Custom character where top rules meet inner verticals
+BOTTOM_JOIN_CHAR = "┴"         # Custom character where bottom rules meet inner verticals
 
 # Header Names
 FEATURE_NAME: str = "Feature Name"
 NMISSING: str = "N Missing"
 PMISSING: str = "Missingness Percentage (%)"
-UNIQUE_COUNT: str = "Unique Count"
+TOTAL_UNIQUE: str = "Total Unique"
 TOTAL_COUNT: str = "Total Count"
 SUGGESTION: str = "Suggestion"
 UNIQUENESS_PERCENTAGE: str = "Uniqueness Percentage"
