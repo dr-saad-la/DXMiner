@@ -1,5 +1,5 @@
 """
-Check the availability of a datatset.
+Check the availability of a datat set.
 
 for example the availability in a github account
 or in a database or online repositories

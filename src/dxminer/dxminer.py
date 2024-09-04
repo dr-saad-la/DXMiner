@@ -1,5 +1,5 @@
 """Main module."""
 
 
-def __version__():
-	return None
+# def __version__():
+# 	return None

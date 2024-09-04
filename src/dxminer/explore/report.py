@@ -8,19 +8,37 @@ TO DO:
     GENERATE REPORT FOR OTHER DATA TYPES
     SERIES, DICTIONARIES, SETS, LISTS
     PYARROW TABLES
+
+Other Reports:
+    JSON
+    HTML
+    Convert to PDF
+
 """
 
-from typing import Union, Dict, Any
+from typing import Any
+from typing import Dict
+from typing import Union
 
 import numpy as np
 import pandas as pd
 import polars as pl
 
-from .._formatter import (MissingnessReportFormatter, UniquenessReportFormatter,
-                          CategoricalReportFormatter, DuplicateRowsReportFormatter)
-from ..config import UNIQUENESS_CONDITIONS, UNIQUENESS_SUGGESTIONS, FEATURE_NAME, TOTAL_COUNT, \
-    UNIQUENESS_PERCENTAGE, SUGGESTION, UNIQUE_CATEGORIES, FREQUENCY, MOST_FREQUENT_CATEGORY, \
-    CATEGORY_PERCENTAGE
+from .._formatter import CategoricalReportFormatter
+from .._formatter import DuplicateRowsReportFormatter
+from .._formatter import MissingnessReportFormatter
+from .._formatter import UniquenessReportFormatter
+from ..config import CATEGORY_PERCENTAGE
+from ..config import FEATURE_NAME
+from ..config import FREQUENCY
+from ..config import MOST_FREQUENT_CATEGORY
+from ..config import SUGGESTION
+from ..config import TOTAL_COUNT
+from ..config import TOTAL_UNIQUE
+from ..config import UNIQUENESS_CONDITIONS
+from ..config import UNIQUENESS_PERCENTAGE
+from ..config import UNIQUENESS_SUGGESTIONS
+from ..config import UNIQUE_CATEGORIES
 
 
 def formatted_report_data_profile(df: Union[pd.DataFrame, pl.DataFrame]) -> str:
@@ -49,7 +67,7 @@ def formatted_report_data_profile(df: Union[pd.DataFrame, pl.DataFrame]) -> str:
     >>>         'B': ['x', 'y', 'x', 'z']
     >>>         }
     >>> df = pd.DataFrame(data)
-    >>> print(report_data_profile(df))
+    >>> print(formatted_report_data_profile(df))
     """
     # Generate the report data
     report = {
@@ -58,7 +76,7 @@ def formatted_report_data_profile(df: Union[pd.DataFrame, pl.DataFrame]) -> str:
         "category_report"  : _generate_category_report(df),
         "duplicate_rows"   : _generate_duplicate_rows_report(df),
         "duplicate_columns": _generate_duplicate_columns_report(df)
-    }
+        }
 
     # Create formatter instances
     missingness_formatter = MissingnessReportFormatter()
@@ -129,7 +147,7 @@ def report_data_profile(df: Union[pd.DataFrame, pl.DataFrame]) -> Dict[str, Any]
         "category_report"  : _generate_category_report(df),
         "duplicate_rows"   : _generate_duplicate_rows_report(df),
         "duplicate_columns": _generate_duplicate_columns_report(df)
-    }
+        }
     return report
 
 
@@ -161,7 +179,7 @@ def _generate_missingness_report(df: Union[pd.DataFrame, pl.DataFrame]) -> Dict[
         missing_percentage = (missing_count / total_count) * 100
         missingness[col] = {
             "missing_count": missing_count, "missing_percentage": missing_percentage,
-        }
+            }
 
     return missingness
 
@@ -195,7 +213,7 @@ def _generate_uniqueness_report(df: Union[pd.DataFrame, pl.DataFrame]) -> pd.Dat
         report_data.append({
             "Feature Name"         : col, "Total Unique": unique_count,
             "Uniqueness Percentage": unique_percentage
-        })
+            })
 
     uniqueness_report_df = pd.DataFrame(report_data)
     return uniqueness_report_df
@@ -228,7 +246,7 @@ def _generate_category_report(df: Union[pd.DataFrame, pl.DataFrame]) -> pd.DataF
                 "Feature Name" : col, "Unique Categories": len(value_counts),
                 "Most Frequent": most_frequent, "Frequency": frequency,
                 "Percentage"   : f"{(frequency / total_count) * 100:.2f}%"
-            })
+                })
 
     category_report_df = pd.DataFrame(report_data)
     return category_report_df
@@ -427,15 +445,15 @@ def report_uniqueness(df: Union[pd.DataFrame, pl.DataFrame]) -> str:
         unique_data = df.nunique()
         total_rows = len(df)
     elif isinstance(df, pl.DataFrame):
-        unique_data = df.select(pl.all().n_unique()).to_pandas().iloc[0]
+        unique_data = df.select(pl.all().n_unique()).to_series().to_pandas()
         total_rows = df.height
     else:
         raise ValueError("The input data is neither a Pandas DataFrame nor a Polars DataFrame.")
 
     uniqueness_report = pd.DataFrame({
-        FEATURE_NAME         : unique_data.index, TOTAL_COUNT: unique_data.values,
-        UNIQUENESS_PERCENTAGE: (unique_data / total_rows) * 100
-    })
+        FEATURE_NAME         : unique_data.index, TOTAL_UNIQUE: unique_data.values,
+        UNIQUENESS_PERCENTAGE: (unique_data.values / total_rows) * 100
+        })
 
     # Sort by the percentage of unique values in descending order
     uniqueness_report = uniqueness_report.sort_values(by=UNIQUENESS_PERCENTAGE, ascending=False)
@@ -443,7 +461,7 @@ def report_uniqueness(df: Union[pd.DataFrame, pl.DataFrame]) -> str:
     # Apply suggestions based on the percentage of unique values
     uniqueness_report[SUGGESTION] = np.select(
         [condition(uniqueness_report[UNIQUENESS_PERCENTAGE]) for condition in
-         UNIQUENESS_CONDITIONS], UNIQUENESS_SUGGESTIONS)
+         UNIQUENESS_CONDITIONS], UNIQUENESS_SUGGESTIONS, default="No suggestion available")
 
     # Format the report using the UniquenessReportFormatter
     uniqueness_formatter = UniquenessReportFormatter()
@@ -530,7 +548,7 @@ def report_categoricals(df: Union[pd.DataFrame, pl.DataFrame]) -> str:
             FEATURE_NAME          : col, UNIQUE_CATEGORIES: unique_vals,
             MOST_FREQUENT_CATEGORY: most_freq_val, FREQUENCY: freq_count,
             CATEGORY_PERCENTAGE   : f"{freq_percentage:.2f}%",
-        })
+            })
 
     category_report_df = pd.DataFrame(report)
 
@@ -643,7 +661,9 @@ def report_duplicate_cols(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
             print(f"- Column '{col}' has a high percentage of duplicate values ({percent:.2f}%). "
                   f"Consider removing or further analyzing this column.")
 
-def _detect_duplicate_rows(df: Union[pd.DataFrame, pl.DataFrame]) -> Union[pd.DataFrame, pl.DataFrame]:
+
+def _detect_duplicate_rows(df: Union[pd.DataFrame, pl.DataFrame]) -> Union[
+    pd.DataFrame, pl.DataFrame]:
     """Detect duplicate rows in the DataFrame."""
     if isinstance(df, pd.DataFrame):
         return df[df.duplicated()]
@@ -652,19 +672,22 @@ def _detect_duplicate_rows(df: Union[pd.DataFrame, pl.DataFrame]) -> Union[pd.Da
     else:
         raise ValueError("The input data is neither a Pandas DataFrame nor a Polars DataFrame.")
 
-def _calculate_duplicate_stats(df: Union[pd.DataFrame, pl.DataFrame], duplicate_rows: Union[pd.DataFrame, pl.DataFrame]) -> Dict[str, float]:
+
+def _calculate_duplicate_stats(df: Union[pd.DataFrame, pl.DataFrame],
+                               duplicate_rows: Union[pd.DataFrame, pl.DataFrame]) -> Dict[
+    str, float]:
     """Calculate the number and percentage of duplicate rows."""
     num_duplicates = len(duplicate_rows) if isinstance(df, pd.DataFrame) else duplicate_rows.height
     total_rows = len(df) if isinstance(df, pd.DataFrame) else df.height
     duplicate_percentage = (num_duplicates / total_rows) * 100
     return {"num_duplicates": num_duplicates, "duplicate_percentage": duplicate_percentage}
 
-def _format_duplicate_rows_report(duplicate_rows: Union[pd.DataFrame, pl.DataFrame], stats: Dict[str, float]) -> str:
+
+def _format_duplicate_rows_report(duplicate_rows: Union[pd.DataFrame, pl.DataFrame],
+                                  stats: Dict[str, float]) -> str:
     """Format the duplicate rows report."""
-    report = [
-        f"Total duplicate rows: {stats['num_duplicates']}",
-        f"Percentage of duplicate rows: {stats['duplicate_percentage']:.2f}%"
-    ]
+    report = [f"Total duplicate rows: {stats['num_duplicates']}",
+              f"Percentage of duplicate rows: {stats['duplicate_percentage']:.2f}%"]
 
     if stats["num_duplicates"] > 0:
         report.append("\nDuplicate rows:")
@@ -674,6 +697,7 @@ def _format_duplicate_rows_report(duplicate_rows: Union[pd.DataFrame, pl.DataFra
             report.append(str(duplicate_rows))
 
     return "\n".join(report)
+
 
 def report_duplicate_rows(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
     """
@@ -730,7 +754,6 @@ def report_duplicate_rows(df: Union[pd.DataFrame, pl.DataFrame]) -> None:
 
     # Print the report
     print(formatted_report)
-
 
 # def missing_data_patterns(df):
 #     pass
