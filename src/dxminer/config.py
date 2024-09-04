@@ -4,6 +4,171 @@ Global configuration constants for dxminer.
 
 """
 
+# config.py
+
+# Annotation for type hinting
+from typing import Dict
+
+# Table formatting configurations stored as a dictionary with multiple styles.
+STYLES: Dict[str, Dict[str, str]] = {
+    "DEFAULT": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "─",
+        "HEADER_SEP_CHAR": "─",
+        "OUTER_SIDE_CHAR": "|",
+        "INNER_VERTICAL_CHAR": "|",
+        "TOP_LEFT_CHAR": "┌",
+        "TOP_RIGHT_CHAR": "┐",
+        "BOTTOM_LEFT_CHAR": "└",
+        "BOTTOM_RIGHT_CHAR": "┘",
+        "TOP_JOIN_CHAR": "┬",
+        "BOTTOM_JOIN_CHAR": "┴"
+    },
+    "STARS": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "*",
+        "HEADER_SEP_CHAR": "*",
+        "OUTER_SIDE_CHAR": "*",
+        "INNER_VERTICAL_CHAR": "*",
+        "TOP_LEFT_CHAR": "*",
+        "TOP_RIGHT_CHAR": "*",
+        "BOTTOM_LEFT_CHAR": "*",
+        "BOTTOM_RIGHT_CHAR": "*",
+        "TOP_JOIN_CHAR": "*",
+        "BOTTOM_JOIN_CHAR": "*"
+    },
+    "SPSS": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "=",
+        "HEADER_SEP_CHAR": "=",
+        "OUTER_SIDE_CHAR": "|",
+        "INNER_VERTICAL_CHAR": "|",
+        "TOP_LEFT_CHAR": "+",
+        "TOP_RIGHT_CHAR": "+",
+        "BOTTOM_LEFT_CHAR": "+",
+        "BOTTOM_RIGHT_CHAR": "+",
+        "TOP_JOIN_CHAR": "+",
+        "BOTTOM_JOIN_CHAR": "+"
+    },
+    "SAS": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "-",
+        "HEADER_SEP_CHAR": "-",
+        "OUTER_SIDE_CHAR": "|",
+        "INNER_VERTICAL_CHAR": "|",
+        "TOP_LEFT_CHAR": "+",
+        "TOP_RIGHT_CHAR": "+",
+        "BOTTOM_LEFT_CHAR": "+",
+        "BOTTOM_RIGHT_CHAR": "+",
+        "TOP_JOIN_CHAR": "+",
+        "BOTTOM_JOIN_CHAR": "+"
+    },
+    "STATS": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "=",
+        "HEADER_SEP_CHAR": "=",
+        "OUTER_SIDE_CHAR": "|",
+        "INNER_VERTICAL_CHAR": "|",
+        "TOP_LEFT_CHAR": "=",
+        "TOP_RIGHT_CHAR": "=",
+        "BOTTOM_LEFT_CHAR": "=",
+        "BOTTOM_RIGHT_CHAR": "=",
+        "TOP_JOIN_CHAR": "=",
+        "BOTTOM_JOIN_CHAR": "="
+    },
+    "BOLD_LINES": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "━",
+        "HEADER_SEP_CHAR": "━",
+        "OUTER_SIDE_CHAR": "┃",
+        "INNER_VERTICAL_CHAR": "┃",
+        "TOP_LEFT_CHAR": "┏",
+        "TOP_RIGHT_CHAR": "┓",
+        "BOTTOM_LEFT_CHAR": "┗",
+        "BOTTOM_RIGHT_CHAR": "┛",
+        "TOP_JOIN_CHAR": "┳",
+        "BOTTOM_JOIN_CHAR": "┻"
+    },
+    "DASHED_LINES": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "-",
+        "HEADER_SEP_CHAR": "-",
+        "OUTER_SIDE_CHAR": ":",
+        "INNER_VERTICAL_CHAR": ":",
+        "TOP_LEFT_CHAR": "-",
+        "TOP_RIGHT_CHAR": "-",
+        "BOTTOM_LEFT_CHAR": "-",
+        "BOTTOM_RIGHT_CHAR": "-",
+        "TOP_JOIN_CHAR": "-",
+        "BOTTOM_JOIN_CHAR": "-"
+    },
+    "DOUBLE_LINES": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "═",
+        "HEADER_SEP_CHAR": "═",
+        "OUTER_SIDE_CHAR": "║",
+        "INNER_VERTICAL_CHAR": "║",
+        "TOP_LEFT_CHAR": "╔",
+        "TOP_RIGHT_CHAR": "╗",
+        "BOTTOM_LEFT_CHAR": "╚",
+        "BOTTOM_RIGHT_CHAR": "╝",
+        "TOP_JOIN_CHAR": "╦",
+        "BOTTOM_JOIN_CHAR": "╩"
+    },
+    "THIN_LINES": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "╌",
+        "HEADER_SEP_CHAR": "╌",
+        "OUTER_SIDE_CHAR": "│",
+        "INNER_VERTICAL_CHAR": "│",
+        "TOP_LEFT_CHAR": "┌",
+        "TOP_RIGHT_CHAR": "┐",
+        "BOTTOM_LEFT_CHAR": "└",
+        "BOTTOM_RIGHT_CHAR": "┘",
+        "TOP_JOIN_CHAR": "┬",
+        "BOTTOM_JOIN_CHAR": "┴"
+    },
+    "SLANTED_LINES": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "/",
+        "HEADER_SEP_CHAR": "/",
+        "OUTER_SIDE_CHAR": "\\",
+        "INNER_VERTICAL_CHAR": "/",
+        "TOP_LEFT_CHAR": "/",
+        "TOP_RIGHT_CHAR": "\\",
+        "BOTTOM_LEFT_CHAR": "\\",
+        "BOTTOM_RIGHT_CHAR": "/",
+        "TOP_JOIN_CHAR": "/",
+        "BOTTOM_JOIN_CHAR": "\\"
+    },
+    "BLOCK_STYLE": {
+        "COL_WIDTH": 25,
+        "MAX_COL_WIDTH": 32,
+        "INNER_SEP_CHAR": "█",
+        "HEADER_SEP_CHAR": "█",
+        "OUTER_SIDE_CHAR": "█",
+        "INNER_VERTICAL_CHAR": "█",
+        "TOP_LEFT_CHAR": "█",
+        "TOP_RIGHT_CHAR": "█",
+        "BOTTOM_LEFT_CHAR": "█",
+        "BOTTOM_RIGHT_CHAR": "█",
+        "TOP_JOIN_CHAR": "█",
+        "BOTTOM_JOIN_CHAR": "█"
+    }
+}
+
+
+
 # Width settings
 COL_WIDTH = 25                 # The main column width
 MAX_COL_WIDTH = 32             # The max column width
