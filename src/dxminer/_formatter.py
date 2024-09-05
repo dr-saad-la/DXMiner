@@ -693,6 +693,124 @@ class UniquenessReportFormatter(ConfigurableSplitTableFormatter):
         """
         return super().format_table()
 
+
+class CategoricalReportFormatter(ConfigurableSplitTableFormatter):
+    def __init__(self, style_name: str, report_data: pd.DataFrame, max_total_width: int = 120):
+        """
+        Formatter for generating and displaying a categorical report in a tabular format.
+
+        This class inherits from ConfigurableSplitTableFormatter and uses a predefined style
+        to format and display the categorical report.
+
+        Parameters
+        ----------
+        style_name : str
+            The name of the style to apply (e.g., 'DEFAULT', 'THIN_LINES', 'DOUBLE_LINES').
+        report_data : pd.DataFrame
+            The data to be formatted in the table.
+        max_total_width : int, optional
+            The maximum allowed width for the table (default is 120 characters).
+
+        Example Usage
+        -------------
+        >>> import pandas as pd
+        >>> data = {
+        >>>     "Feature Name": ["Category A", "Category B", "Category C"],
+        >>>     "Unique Categories": [10, 5, 8],
+        >>>     "Most Frequent Category": ["X", "Y", "Z"],
+        >>>     "Frequency": [100, 50, 80],
+        >>>     "Category Percentage": [20.0, 10.0, 16.0]
+        >>> }
+        >>> category_report_df = pd.DataFrame(data)
+
+        >>> # Using the DEFAULT style
+        >>> formatter = CategoricalReportFormatter(style_name="DEFAULT", report_data=category_report_df, max_total_width=120)
+        >>> print(formatter.format_table())
+
+        >>> # Using the THIN_LINES style
+        >>> formatter = CategoricalReportFormatter(style_name="THIN_LINES", report_data=category_report_df, max_total_width=120)
+        >>> print(formatter.format_table())
+
+        >>> # Using the DOUBLE_LINES style
+        >>> formatter = CategoricalReportFormatter(style_name="DOUBLE_LINES", report_data=category_report_df, max_total_width=120)
+        >>> print(formatter.format_table())
+
+        Expected Outputs
+        ----------------
+        1. **DEFAULT Style**:
+        ┌──────────────────────┬────────────────┬─────────────────────────┬──────────┬──────────────────────┐
+        │ Feature Name          │ Unique Categories │ Most Frequent Category │ Frequency │ Category Percentage  │
+        ├──────────────────────┼────────────────┼─────────────────────────┼──────────┼──────────────────────┤
+        │ Category A            │ 10             │ X                       │ 100      │ 20.00%               │
+        │ Category B            │ 5              │ Y                       │ 50       │ 10.00%               │
+        │ Category C            │ 8              │ Z                       │ 80       │ 16.00%               │
+        └──────────────────────┴────────────────┴─────────────────────────┴──────────┴──────────────────────┘
+
+        2. **THIN_LINES Style**:
+        ┌──────────────────────┬────────────────┬─────────────────────────┬──────────┬──────────────────────┐
+        │ Feature Name          │ Unique Categories │ Most Frequent Category │ Frequency │ Category Percentage  │
+        ├──────────────────────┼────────────────┼─────────────────────────┼──────────┼──────────────────────┤
+        │ Category A            │ 10             │ X                       │ 100      │ 20.00%               │
+        │ Category B            │ 5              │ Y                       │ 50       │ 10.00%               │
+        │ Category C            │ 8              │ Z                       │ 80       │ 16.00%               │
+        └──────────────────────┴────────────────┴─────────────────────────┴──────────┴──────────────────────┘
+
+        3. **DOUBLE_LINES Style**:
+        ╔═══════════════════════════╦════════════════╦═════════════════════════╦══════════╦═════════════════════╗
+        ║ Feature Name              ║ Unique Categories ║ Most Frequent Category ║ Frequency ║ Category Percentage ║
+        ╠═══════════════════════════╬════════════════╬═════════════════════════╬══════════╬═════════════════════╣
+        ║ Category A                ║ 10             ║ X                       ║ 100      ║ 20.00%              ║
+        ║ Category B                ║ 5              ║ Y                       ║ 50       ║ 10.00%              ║
+        ║ Category C                ║ 8              ║ Z                       ║ 80       ║ 16.00%              ║
+        ╚═══════════════════════════╩════════════════╩═════════════════════════╩══════════╩═════════════════════╝
+        """
+        # Define the headers that will be used in the formatted table
+        headers = ["Feature Name", "Unique Categories", "Most Frequent Category", "Frequency", "Category Percentage"]
+
+        # Prepare the report data in a list format for the table
+        formatted_data = self.prepare_report_data(report_data)
+
+        # Initialize the base class with the headers and formatted data
+        super().__init__(style_name, headers, formatted_data, max_total_width)
+
+    def prepare_report_data(self, report_data: pd.DataFrame) -> List[List[str]]:
+        """
+        Prepare the categorical report data to be formatted.
+
+        Parameters
+        ----------
+        report_data : pd.DataFrame
+            The raw report data.
+
+        Returns
+        -------
+        List[List[str]]
+            The formatted data for the table.
+        """
+        formatted_data = []
+        for _, row in report_data.iterrows():
+            formatted_row = [
+                str(row["Feature Name"]),
+                f"{row['Unique Categories']:>12}",
+                str(row['Most Frequent Category']),
+                f"{row['Frequency']:>10}",
+                f"{row['Category Percentage']:>8.2f}%"
+            ]
+            formatted_data.append(formatted_row)
+        return formatted_data
+
+    def format_table(self) -> str:
+        """
+        Override the format_table method to apply the formatting for the categorical report.
+
+        Returns
+        -------
+        str
+            The formatted categorical report.
+        """
+        return super().format_table()
+
+
 class MissingnessReportFormatter(TableFormatter):
     def __init__(self):
         headers = [FEATURE_NAME, NMISSING, PMISSING]
@@ -701,17 +819,6 @@ class MissingnessReportFormatter(TableFormatter):
     def format(self, missingness_report: Dict[str, Any]) -> str:
         field_format = "{missing_count:>8} | {missing_percentage:>26.1f}%"
         return self.format_report(missingness_report, field_format)
-
-
-class CategoricalReportFormatter(TableFormatter):
-    def __init__(self):
-        headers = [FEATURE_NAME, UNIQUE_CATEGORIES, MOST_FREQUENT_CATEGORY, FREQUENCY, CATEGORY_PERCENTAGE]
-        super().__init__(headers)
-
-    def format(self, category_report: pd.DataFrame) -> str:
-        field_format = (f"{{{UNIQUE_CATEGORIES}:>18}} | {{{MOST_FREQUENT_CATEGORY}:<{COL_WIDTH}}} | "
-                        f"{{{FREQUENCY}:>10}} | {{{CATEGORY_PERCENTAGE}:>8}}")
-        return self.format_report(category_report.to_dict(orient="index"), field_format)
 
 
 class DuplicateRowsReportFormatter:
