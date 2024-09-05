@@ -13,6 +13,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Union
+from typing import Optional
 
 import pandas as pd
 import polars as pl
@@ -41,6 +42,7 @@ from .config import TOTAL_UNIQUE
 from .config import UNIQUENESS_PERCENTAGE
 from .config import UNIQUENESS_SUGGESTIONS
 from .config import UNIQUE_CATEGORIES
+from .config import DUPLICATE_ROWS, TOTAL_DUPLICATES, DUPLICATE_PERCENTAGE, FIRST_OCCURRENCE, LAST_OCCURRENCE, DUPLICATE_COUNT
 
 
 class TableFormatter:
@@ -400,11 +402,7 @@ class ConfigurableTableFormatter(TableFormatter):
 
     def format_table(self) -> str:
         """Generate the formatted table using the selected style."""
-        result = [
-            self.format_custom_top_rule(),
-            self.format_header(),
-            self.format_separator(self.header_sep_char)
-            ]
+        result = [self.format_custom_top_rule(), self.format_header(), self.format_separator(self.header_sep_char)]
 
         # Rows and inner separators (only add inner separators **between** rows)
         for idx, row_data in enumerate(self.report_data):
@@ -582,15 +580,18 @@ class UniquenessReportFormatter(ConfigurableSplitTableFormatter):
         >>> uniqueness_report_df = pd.DataFrame(data)
 
         >>> # Using the DEFAULT style
-        >>> formatter = UniquenessReportFormatter(style_name="DEFAULT", report_data=uniqueness_report_df, max_total_width=120)
+        >>> formatter = UniquenessReportFormatter(style_name="DEFAULT", report_data=uniqueness_report_df,
+        max_total_width=120)
         >>> print(formatter.format_table())
 
         >>> # Using the THIN_LINES style
-        >>> formatter = UniquenessReportFormatter(style_name="THIN_LINES", report_data=uniqueness_report_df, max_total_width=120)
+        >>> formatter = UniquenessReportFormatter(style_name="THIN_LINES", report_data=uniqueness_report_df,
+        max_total_width=120)
         >>> print(formatter.format_table())
 
         >>> # Using the DOUBLE_LINES style
-        >>> formatter = UniquenessReportFormatter(style_name="DOUBLE_LINES", report_data=uniqueness_report_df, max_total_width=120)
+        >>> formatter = UniquenessReportFormatter(style_name="DOUBLE_LINES", report_data=uniqueness_report_df,
+        max_total_width=120)
         >>> print(formatter.format_table())
 
         Expected Outputs
@@ -678,7 +679,7 @@ class UniquenessReportFormatter(ConfigurableSplitTableFormatter):
         for _, row in report_data.iterrows():
             suggestion = self.determine_suggestion(row[UNIQUENESS_PERCENTAGE])
             formatted_row = [str(row[FEATURE_NAME]), f"{row[TOTAL_UNIQUE]:>12}",
-                f"{row[UNIQUENESS_PERCENTAGE]:>10.2f}%", suggestion]
+                             f"{row[UNIQUENESS_PERCENTAGE]:>10.2f}%", suggestion]
             formatted_data.append(formatted_row)
         return formatted_data
 
@@ -695,113 +696,183 @@ class UniquenessReportFormatter(ConfigurableSplitTableFormatter):
 
 
 class CategoricalReportFormatter(ConfigurableSplitTableFormatter):
-    def __init__(self, style_name: str, report_data: pd.DataFrame, max_total_width: int = 120):
-        """
-        Formatter for generating and displaying a categorical report in a tabular format.
+    """
+    Formatter for generating and displaying a categorical report in a tabular format.
 
-        This class inherits from ConfigurableSplitTableFormatter and uses a predefined style
-        to format and display the categorical report.
+    This class extends the `ConfigurableSplitTableFormatter` and provides additional functionality
+    to filter, sort, and format categorical data for reporting purposes. The user can specify a style
+    (e.g., 'DEFAULT', 'THIN_LINES', 'DOUBLE_LINES'), a maximum total table width, sorting options, and
+    a filter threshold for category percentages.
 
-        Parameters
-        ----------
-        style_name : str
-            The name of the style to apply (e.g., 'DEFAULT', 'THIN_LINES', 'DOUBLE_LINES').
-        report_data : pd.DataFrame
-            The data to be formatted in the table.
-        max_total_width : int, optional
-            The maximum allowed width for the table (default is 120 characters).
+    Parameters
+    ----------
+    style_name : str
+        The name of the style to apply (e.g., 'DEFAULT', 'THIN_LINES', 'DOUBLE_LINES').
+    report_data : pd.DataFrame
+        The categorical report data in a pandas DataFrame format.
+    max_total_width : int, optional
+        The maximum allowed width for the table (default is 120 characters).
+    sort_by : str, optional
+        The column to sort the report by (default is None).
+    filter_threshold : float, optional
+        Filter categories below this percentage (default is None).
+    include_missing : bool, optional
+        Whether to include missing data handling in the report (default is True).
 
-        Example Usage
-        -------------
-        >>> import pandas as pd
-        >>> data = {
-        >>>     "Feature Name": ["Category A", "Category B", "Category C"],
-        >>>     "Unique Categories": [10, 5, 8],
-        >>>     "Most Frequent Category": ["X", "Y", "Z"],
-        >>>     "Frequency": [100, 50, 80],
-        >>>     "Category Percentage": [20.0, 10.0, 16.0]
-        >>> }
-        >>> category_report_df = pd.DataFrame(data)
+    Attributes
+    ----------
+    headers : List[str]
+        The table headers, including feature names and categorical information.
+    report_data : pd.DataFrame
+        The report data provided for formatting.
+    sort_by : str
+        The column to sort the report by.
+    filter_threshold : float
+        The threshold for filtering categories based on percentage.
+    include_missing : bool
+        Flag to include missing data handling in the report.
 
-        >>> # Using the DEFAULT style
-        >>> formatter = CategoricalReportFormatter(style_name="DEFAULT", report_data=category_report_df, max_total_width=120)
-        >>> print(formatter.format_table())
+    Methods
+    -------
+    apply_threshold()
+        Filter out categories below the specified percentage threshold.
+    sort_report()
+        Sort the report by the specified column, if sorting is enabled.
+    prepare_report_data() -> list
+        Prepare the report data into a list of lists for display in a formatted table.
+    format_table() -> str
+        Format the entire categorical report into a styled table based on the specified style.
 
-        >>> # Using the THIN_LINES style
-        >>> formatter = CategoricalReportFormatter(style_name="THIN_LINES", report_data=category_report_df, max_total_width=120)
-        >>> print(formatter.format_table())
+    Example
+    -------
+    ```python
+    # Sample Data
+    import pandas as pd
 
-        >>> # Using the DOUBLE_LINES style
-        >>> formatter = CategoricalReportFormatter(style_name="DOUBLE_LINES", report_data=category_report_df, max_total_width=120)
-        >>> print(formatter.format_table())
+    data = {
+        "Feature Name": ["Category A", "Category B", "Category C", "Category D"],
+        "Unique Categories": [10, 5, 8, 3],
+        "Most Frequent Category": ["X", "Y", "Z", "W"],
+        "Frequency": [100, 50, 80, 20],
+        "Category Percentage": [20.0, 10.0, 16.0, 5.0]
+    }
+    category_report_df = pd.DataFrame(data)
 
-        Expected Outputs
-        ----------------
-        1. **DEFAULT Style**:
-        ┌──────────────────────┬────────────────┬─────────────────────────┬──────────┬──────────────────────┐
-        │ Feature Name          │ Unique Categories │ Most Frequent Category │ Frequency │ Category Percentage  │
-        ├──────────────────────┼────────────────┼─────────────────────────┼──────────┼──────────────────────┤
-        │ Category A            │ 10             │ X                       │ 100      │ 20.00%               │
-        │ Category B            │ 5              │ Y                       │ 50       │ 10.00%               │
-        │ Category C            │ 8              │ Z                       │ 80       │ 16.00%               │
-        └──────────────────────┴────────────────┴─────────────────────────┴──────────┴──────────────────────┘
+    # Using the DEFAULT style
+    formatter = CategoricalReportFormatter(
+        style_name="DEFAULT",
+        report_data=category_report_df,
+        sort_by="Category Percentage",
+        filter_threshold=10.0
+    )
 
-        2. **THIN_LINES Style**:
-        ┌──────────────────────┬────────────────┬─────────────────────────┬──────────┬──────────────────────┐
-        │ Feature Name          │ Unique Categories │ Most Frequent Category │ Frequency │ Category Percentage  │
-        ├──────────────────────┼────────────────┼─────────────────────────┼──────────┼──────────────────────┤
-        │ Category A            │ 10             │ X                       │ 100      │ 20.00%               │
-        │ Category B            │ 5              │ Y                       │ 50       │ 10.00%               │
-        │ Category C            │ 8              │ Z                       │ 80       │ 16.00%               │
-        └──────────────────────┴────────────────┴─────────────────────────┴──────────┴──────────────────────┘
+    print(formatter.format_table())
 
-        3. **DOUBLE_LINES Style**:
-        ╔═══════════════════════════╦════════════════╦═════════════════════════╦══════════╦═════════════════════╗
-        ║ Feature Name              ║ Unique Categories ║ Most Frequent Category ║ Frequency ║ Category Percentage ║
-        ╠═══════════════════════════╬════════════════╬═════════════════════════╬══════════╬═════════════════════╣
-        ║ Category A                ║ 10             ║ X                       ║ 100      ║ 20.00%              ║
-        ║ Category B                ║ 5              ║ Y                       ║ 50       ║ 10.00%              ║
-        ║ Category C                ║ 8              ║ Z                       ║ 80       ║ 16.00%              ║
-        ╚═══════════════════════════╩════════════════╩═════════════════════════╩══════════╩═════════════════════╝
-        """
-        # Define the headers that will be used in the formatted table
-        headers = ["Feature Name", "Unique Categories", "Most Frequent Category", "Frequency", "Category Percentage"]
+    # Using the THIN_LINES style
+    formatter = CategoricalReportFormatter(
+        style_name="THIN_LINES",
+        report_data=category_report_df,
+        sort_by="Category Percentage",
+        filter_threshold=10.0
+    )
 
-        # Prepare the report data in a list format for the table
-        formatted_data = self.prepare_report_data(report_data)
+    print(formatter.format_table())
 
-        # Initialize the base class with the headers and formatted data
+    # Using the DOUBLE_LINES style
+    formatter = CategoricalReportFormatter(
+        style_name="DOUBLE_LINES",
+        report_data=category_report_df,
+        sort_by="Category Percentage",
+        filter_threshold=10.0
+    )
+
+    print(formatter.format_table())
+    ```
+
+    Expected Outputs
+    ----------------
+    1. **DEFAULT Style**:
+    ┌──────────────────────┬────────────────┬─────────────────────────┬──────────┬─────────────────────┐
+    | Feature Name          | Unique Categories | Most Frequent Category | Frequency | Category Percentage |
+    ├──────────────────────┼────────────────┼─────────────────────────┼──────────┼─────────────────────┤
+    | Category A            | 10             | X                       | 100      | 20.00%              |
+    | Category B            | 5              | Y                       | 50       | 10.00%              |
+    | Category C            | 8              | Z                       | 80       | 16.00%              |
+    └──────────────────────┴────────────────┴─────────────────────────┴──────────┴─────────────────────┘
+
+    2. **THIN_LINES Style**:
+    ┌──────────────────────┬────────────────┬─────────────────────────┬──────────┬─────────────────────┐
+    │ Feature Name          │ Unique Categories │ Most Frequent Category | Frequency | Category Percentage │
+    ├──────────────────────┼────────────────┼─────────────────────────┼──────────┼─────────────────────┤
+    │ Category A            │ 10             │ X                       │ 100      │ 20.00%              │
+    │ Category B            │ 5              │ Y                       │ 50       │ 10.00%              │
+    │ Category C            │ 8              │ Z                       │ 80       │ 16.00%              │
+    └──────────────────────┴────────────────┴─────────────────────────┴──────────┴─────────────────────┘
+
+    3. **DOUBLE_LINES Style**:
+    ╔══════════════════════╦════════════════╦═════════════════════════╦══════════╦═════════════════════╗
+    ║ Feature Name          ║ Unique Categories ║ Most Frequent Category ║ Frequency ║ Category Percentage ║
+    ╠══════════════════════╬════════════════╬═════════════════════════╬══════════╬═════════════════════╣
+    ║ Category A            ║ 10             ║ X                       ║ 100      ║ 20.00%              ║
+    ║ Category B            ║ 5              ║ Y                       ║ 50       ║ 10.00%              ║
+    ║ Category C            ║ 8              ║ Z                       ║ 80       ║ 16.00%              ║
+    ╚══════════════════════╩════════════════╩═════════════════════════╩══════════╩═════════════════════╝
+    """
+
+    def __init__(self, style_name: str, report_data: pd.DataFrame, max_total_width: int = 120,
+                 sort_by: Optional[str] = None, filter_threshold: Optional[float] = None, include_missing: bool = True):
+        # Define the headers using imported global variables from the config
+        headers = [FEATURE_NAME, UNIQUE_CATEGORIES, MOST_FREQUENT_CATEGORY, FREQUENCY, CATEGORY_PERCENTAGE]
+
+        # Prepare the report data for formatting, applying filters and sorting as needed
+        self.report_data = report_data
+        self.sort_by = sort_by
+        self.filter_threshold = filter_threshold
+        self.include_missing = include_missing
+
+        # Apply filtering and sorting if needed
+        self.apply_threshold()
+        self.sort_report()
+
+        # Format the report data into a list of lists for display
+        formatted_data = self.prepare_report_data()
+
+        # Initialize the base class (ConfigurableSplitTableFormatter)
         super().__init__(style_name, headers, formatted_data, max_total_width)
 
-    def prepare_report_data(self, report_data: pd.DataFrame) -> List[List[str]]:
+    def apply_threshold(self):
         """
-        Prepare the categorical report data to be formatted.
+        Filter categories below a certain percentage threshold, if a threshold is set.
+        """
+        if self.filter_threshold:
+            self.report_data = self.report_data[self.report_data[CATEGORY_PERCENTAGE] > self.filter_threshold]
 
-        Parameters
-        ----------
-        report_data : pd.DataFrame
-            The raw report data.
+    def sort_report(self):
+        """
+        Sort the report by a specified column, if sorting is enabled.
+        """
+        if self.sort_by and self.sort_by in self.report_data.columns:
+            self.report_data = self.report_data.sort_values(by=self.sort_by, ascending=False)
+
+    def prepare_report_data(self) -> list:
+        """
+        Prepare the report data for display, formatting it as a list of lists.
 
         Returns
         -------
         List[List[str]]
-            The formatted data for the table.
+            The formatted report data.
         """
         formatted_data = []
-        for _, row in report_data.iterrows():
-            formatted_row = [
-                str(row["Feature Name"]),
-                f"{row['Unique Categories']:>12}",
-                str(row['Most Frequent Category']),
-                f"{row['Frequency']:>10}",
-                f"{row['Category Percentage']:>8.2f}%"
-            ]
+        for _, row in self.report_data.iterrows():
+            formatted_row = [str(row[FEATURE_NAME]), f"{row[UNIQUE_CATEGORIES]:>10}", str(row[MOST_FREQUENT_CATEGORY]),
+                             f"{row[FREQUENCY]:>10}", f"{row[CATEGORY_PERCENTAGE]:>10.2f}%"]
             formatted_data.append(formatted_row)
         return formatted_data
 
     def format_table(self) -> str:
         """
-        Override the format_table method to apply the formatting for the categorical report.
+        Override the format_table method to apply the specific formatting for the categorical report.
 
         Returns
         -------
@@ -810,46 +881,267 @@ class CategoricalReportFormatter(ConfigurableSplitTableFormatter):
         """
         return super().format_table()
 
+class DuplicateRowsReportFormatter(ConfigurableSplitTableFormatter):
+    """
+    Formatter for generating and displaying a report of duplicate rows in a tabular format.
 
-class MissingnessReportFormatter(TableFormatter):
-    def __init__(self):
-        headers = [FEATURE_NAME, NMISSING, PMISSING]
-        super().__init__(headers)
+    This class extends `ConfigurableSplitTableFormatter` and formats a DataFrame containing
+    duplicate rows along with useful statistics such as the total number of duplicate rows,
+    percentage of duplicates, and the indices of first and last occurrences.
 
-    def format(self, missingness_report: Dict[str, Any]) -> str:
-        field_format = "{missing_count:>8} | {missing_percentage:>26.1f}%"
-        return self.format_report(missingness_report, field_format)
+    Parameters
+    ----------
+    style_name : str
+        The name of the style to apply (e.g., 'DEFAULT', 'THIN_LINES', 'DOUBLE_LINES').
+    duplicate_rows : Union[pd.DataFrame, pl.DataFrame]
+        The DataFrame containing the duplicate rows.
+    stats : Dict[str, Any]
+        A dictionary containing statistics about the duplicates (e.g., number of duplicates, percentage).
+    max_total_width : int, optional
+        The maximum allowed width for the table (default is 120 characters).
 
+    Example Usage
+    -------------
+    >>> import pandas as pd
+    >>> data = {
+    >>>     "Column A": [1, 2, 2, 3, 4, 4],
+    >>>     "Column B": ["A", "B", "B", "C", "D", "D"]
+    >>> }
+    >>> df = pd.DataFrame(data)
+    >>> duplicate_rows = df[df.duplicated(keep=False)]
+    >>> stats = {
+    >>>     "num_duplicates": len(duplicate_rows),
+    >>>     "duplicate_percentage": (len(duplicate_rows) / len(df)) * 100
+    >>> }
 
-class DuplicateRowsReportFormatter:
-    def __init__(self):
-        self.headers = ["Duplicate Rows"]
+    >>> formatter = DuplicateRowsReportFormatter(style_name="DEFAULT", duplicate_rows=duplicate_rows, stats=stats)
+    >>> print(formatter.format_table())
 
-    @staticmethod
-    def format(duplicate_rows: Union[pd.DataFrame, pl.DataFrame], stats: Dict[str, Any]) -> str:
+    Expected Output
+    ---------------
+    1. **DEFAULT Style**:
+    ┌───────────────────────┬──────────────────────┬──────────────────────────┬─────────────────────┬─────────────────────┬───────────────────┐
+    | Duplicate Rows        | Total Duplicates     | Percentage (%)           | First Occurrence     | Last Occurrence     | Duplicate Count   |
+    ├───────────────────────┼──────────────────────┼──────────────────────────┼─────────────────────┼─────────────────────┼───────────────────┤
+    | Column A: 2, Column B: B  | 2                   | 33.33%                   | 1                   | 2                   | 2                 |
+    | Column A: 4, Column B: D  | 2                   | 33.33%                   | 4                   | 5                   | 2                 |
+    └───────────────────────┴──────────────────────┴──────────────────────────┴─────────────────────┴─────────────────────┴───────────────────┘
+    """
+    def __init__(self, style_name: str, duplicate_rows: Union[pd.DataFrame, pl.DataFrame], stats: Dict[str, Any], max_total_width: int = 120):
+        # Define the headers using imported global variables from the config
+        headers = [DUPLICATE_ROWS, TOTAL_DUPLICATES, DUPLICATE_PERCENTAGE, FIRST_OCCURRENCE, LAST_OCCURRENCE, DUPLICATE_COUNT]
+
+        # Store the duplicate rows and stats
+        self.duplicate_rows = duplicate_rows
+        self.stats = stats
+
+        # Format the report data into a list of lists for display
+        formatted_data = self.prepare_report_data()
+
+        # Initialize the base class (ConfigurableSplitTableFormatter)
+        super().__init__(style_name, headers, formatted_data, max_total_width)
+
+    def prepare_report_data(self) -> List[List[str]]:
         """
-        Format the duplicate rows report into a readable string.
+        Prepare the duplicate rows report data, including statistics.
 
-        Parameters
-        ----------
-        duplicate_rows : Union[pd.DataFrame, pl.DataFrame]
-            The DataFrame containing the duplicate rows.
-        stats : Dict[str, Any]
-            A dictionary containing statistics about the duplicates.
+        Returns
+        -------
+        List[List[str]]
+            The formatted duplicate rows report data.
+        """
+        formatted_data = []
+
+        # Get first and last occurrences of the duplicate rows
+        first_occurrences = self.duplicate_rows.drop_duplicates(keep="first").index
+        last_occurrences = self.duplicate_rows.drop_duplicates(keep="last").index
+
+        # Iterate over duplicate rows and format the report
+        for idx, row in self.duplicate_rows.iterrows():
+            first_occurrence = first_occurrences.get_loc(idx) if idx in first_occurrences else "N/A"
+            last_occurrence = last_occurrences.get_loc(idx) if idx in last_occurrences else "N/A"
+            duplicate_count = self.duplicate_rows.duplicated(keep=False).sum()
+
+            formatted_row = [
+                ", ".join([f"{col}: {row[col]}" for col in self.duplicate_rows.columns]),
+                str(self.stats["num_duplicates"]),
+                f"{self.stats['duplicate_percentage']:.2f}%",
+                str(first_occurrence),
+                str(last_occurrence),
+                str(duplicate_count)
+            ]
+            formatted_data.append(formatted_row)
+
+        return formatted_data
+
+    def format_table(self) -> str:
+        """
+        Override the format_table method to apply the specific formatting for the duplicate rows report.
 
         Returns
         -------
         str
             The formatted duplicate rows report.
         """
-        report = [f"Total duplicate rows: {stats['num_duplicates']}",
-                  f"Percentage of duplicate rows: {stats['duplicate_percentage']:.2f}%"]
+        return super().format_table()
 
-        if stats["num_duplicates"] > 0:
-            report.append("\nDuplicate rows:")
-            if isinstance(duplicate_rows, pd.DataFrame):
-                report.append(duplicate_rows.to_string(index=False))
-            else:
-                report.append(str(duplicate_rows))
+# ========================
+# To do:
+# Class needs more work
+# ========================
+class DuplicateColumnsReportFormatter(ConfigurableSplitTableFormatter):
+    """
+    Formatter for generating and displaying a duplicate columns report in a tabular format.
 
-        return "\n".join(report)
+    This class inherits from `ConfigurableSplitTableFormatter` and formats and displays the duplicate
+    columns report. It supports optional filtering and custom table styles.
+
+    Parameters
+    ----------
+    style_name : str
+        The name of the style to apply (e.g., 'DEFAULT', 'THIN_LINES', 'DOUBLE_LINES').
+    duplicate_columns : pd.DataFrame
+        A DataFrame containing only the duplicate columns.
+    stats : Dict[str, Any]
+        A dictionary containing statistics about the duplicate columns (e.g., total number of duplicate columns).
+    max_total_width : int, optional
+        The maximum allowed width for the table (default is 120 characters).
+
+    Example Usage
+    -------------
+    >>> # Sample Data
+    >>> import pandas as pd
+    >>> data = {
+    >>>     'A': [1, 2, 3],
+    >>>     'B': [1, 2, 3],
+    >>>     'C': [4, 5, 6],
+    >>>     'D': [1, 2, 3]
+    >>> }
+    >>> df = pd.DataFrame(data)
+
+    >>> # Detect duplicate columns
+    >>> duplicate_columns = df.loc[:, df.T.duplicated()]
+    >>> stats = {
+    >>>     'num_duplicates': len(duplicate_columns.columns),
+    >>>     'duplicate_percentage': (len(duplicate_columns.columns) / len(df.columns)) * 100
+    >>> }
+
+    >>> # Using the DEFAULT style
+    >>> formatter_default = DuplicateColumnsReportFormatter(
+    >>>     style_name="DEFAULT",
+    >>>     duplicate_columns=duplicate_columns,
+    >>>     stats=stats,
+    >>>     max_total_width=120
+    >>> )
+
+    >>> print("DEFAULT Style Table:")
+    >>> print(formatter_default.format_table())
+
+    Styles
+    ------
+    **DEFAULT Style:**
+    ┌───────────────────────────┬─────────────────────┬───────────────────────────┐
+    | Column Name               | Number of Duplicates | Duplicate Percentage      |
+    ├───────────────────────────┼─────────────────────┼───────────────────────────┤
+    | A                         | 2                   | 50.00%                    |
+    | D                         | 2                   | 50.00%                    |
+    └───────────────────────────┴─────────────────────┴───────────────────────────┘
+
+    **THIN_LINES Style:**
+    ┌───────────────────────────┬─────────────────────┬───────────────────────────┐
+    │ Column Name               │ Number of Duplicates │ Duplicate Percentage      │
+    ├───────────────────────────┼─────────────────────┼───────────────────────────┤
+    │ A                         │ 2                   │ 50.00%                    │
+    │ D                         │ 2                   │ 50.00%                    │
+    └───────────────────────────┴─────────────────────┴───────────────────────────┘
+
+    **DOUBLE_LINES Style:**
+    ╔═══════════════════════════╦═════════════════════╦═══════════════════════════╗
+    ║ Column Name               ║ Number of Duplicates ║ Duplicate Percentage      ║
+    ╠═══════════════════════════╬═════════════════════╬═══════════════════════════╣
+    ║ A                         ║ 2                   ║ 50.00%                    ║
+    ║ D                         ║ 2                   ║ 50.00%                    ║
+    ╚═══════════════════════════╩═════════════════════╩═══════════════════════════╝
+    """
+
+    def __init__(self, style_name: str, duplicate_columns: pd.DataFrame, stats: Dict[str, Any],
+                 max_total_width: int = 120):
+        """
+        Initialize the duplicate columns report formatter.
+        """
+        # Define the headers for the duplicate columns report
+        headers = [FEATURE_NAME, "Number of Duplicates", "Duplicate Percentage"]
+
+        # Store the provided stats and duplicate columns for formatting
+        self.duplicate_columns = duplicate_columns
+        self.stats = stats
+
+        # Format the report data into a list of lists for display
+        formatted_data = self.prepare_report_data()
+
+        # Initialize the base class (ConfigurableSplitTableFormatter)
+        super().__init__(style_name, headers, formatted_data, max_total_width)
+
+    def prepare_report_data(self) -> List[List[str]]:
+        """
+        Prepare the duplicate columns report data to be formatted.
+
+        Returns
+        -------
+        List[List[str]]
+            The formatted data for the table, with stats included.
+        """
+        formatted_data = []
+        for col in self.duplicate_columns.columns:
+            formatted_row = [str(col), str(self.duplicate_columns[col].duplicated().sum() + 1),
+                # Include the original column as well
+                f"{self.stats['duplicate_percentage']:.2f}%"]
+            formatted_data.append(formatted_row)
+        return formatted_data
+
+    def format_table(self) -> str:
+        """
+        Override the format_table method to apply the formatting for the duplicate columns report.
+
+        Returns
+        -------
+        str
+            The formatted duplicate columns report.
+        """
+        return super().format_table()
+
+
+# Other reports
+# 	1.	Missing Data Report
+# 	2.	Outlier Detection Report
+# 	3.	Data Type Consistency Report
+# 	4.	Cardinality and Frequency Distribution Report
+# 	5.	Correlated Features Report
+# 	6.	Imbalance Report for Target Variables
+# 	7.	Feature Interaction Report
+
+# ================================================
+# Other Advanced Reports
+# 	1.	Time Series Analysis Report
+# 	2.	Multicollinearity Detection Report
+# 	3.	Feature Importance Report
+# 	4.	PCA & Dimensionality Reduction Report
+# 	5.	Data Distribution Analysis Report
+# 	6.	Clustering Analysis Report
+# 	7.	Residual Analysis Report
+# 	8.	Noise Detection and Removal Report
+# 	9.	Anomaly Detection Report
+# 	10.	Dataset Summary and Overview Report
+# 	11.	Data Imputation Strategy Report
+# ================================================
+
+
+# class MissingnessReportFormatter(TableFormatter):
+#     def __init__(self):
+#         headers = [FEATURE_NAME, NMISSING, PMISSING]
+#         super().__init__(headers)
+#
+#     def format(self, missingness_report: Dict[str, Any]) -> str:
+#         field_format = "{missing_count:>8} | {missing_percentage:>26.1f}%"
+#         return self.format_report(missingness_report, field_format)
+
