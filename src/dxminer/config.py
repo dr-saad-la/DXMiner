@@ -72,7 +72,7 @@ STYLES: Dict[str, Dict[str, str]] = {
         "MAX_COL_WIDTH": 32,
         "INNER_SEP_CHAR": "=",
         "HEADER_SEP_CHAR": "=",
-        "OUTER_SIDE_CHAR": "|",
+        "OUTER_SIDE_CHAR": "",
         "INNER_VERTICAL_CHAR": "|",
         "TOP_LEFT_CHAR": "=",
         "TOP_RIGHT_CHAR": "=",
@@ -210,3 +210,11 @@ UNIQUENESS_SUGGESTIONS = ["Likely an identifier or unique key.",
                           "High uniqueness, important feature.",
                           "Moderate uniqueness, review as a potential feature.",
                           "Low uniqueness, may have limited feature importance."]
+
+# Duplicate rows variables
+DUPLICATE_ROWS: str = "Duplicate Rows"
+TOTAL_DUPLICATES: str = "Total Duplicates"
+DUPLICATE_PERCENTAGE: str= "Duplicate Percentage %"
+FIRST_OCCURRENCE: str = "First Occurrence"
+LAST_OCCURRENCE: str = "Last Occurrence"
+DUPLICATE_COUNT: str = "Duplicate Count"
