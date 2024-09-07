@@ -12,8 +12,8 @@ Note: This module is not intended to be part of the public API.
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Union
 from typing import Optional
+from typing import Union
 
 import pandas as pd
 import polars as pl
@@ -23,26 +23,29 @@ from .config import BOTTOM_LEFT_CHAR
 from .config import BOTTOM_RIGHT_CHAR
 from .config import CATEGORY_PERCENTAGE
 from .config import COL_WIDTH
+from .config import DUPLICATE_COUNT
+from .config import DUPLICATE_PERCENTAGE
+from .config import DUPLICATE_ROWS
 from .config import FEATURE_NAME
+from .config import FIRST_OCCURRENCE
 from .config import FREQUENCY
 from .config import HEADER_SEP_CHAR
 from .config import INNER_SEP_CHAR
 from .config import INNER_VERTICAL_CHAR
+from .config import LAST_OCCURRENCE
 from .config import MAX_COL_WIDTH
 from .config import MOST_FREQUENT_CATEGORY
-from .config import NMISSING
 from .config import OUTER_SIDE_CHAR
-from .config import PMISSING
 from .config import STYLES
 from .config import SUGGESTION
 from .config import TOP_JOIN_CHAR
 from .config import TOP_LEFT_CHAR
 from .config import TOP_RIGHT_CHAR
+from .config import TOTAL_DUPLICATES
 from .config import TOTAL_UNIQUE
 from .config import UNIQUENESS_PERCENTAGE
 from .config import UNIQUENESS_SUGGESTIONS
 from .config import UNIQUE_CATEGORIES
-from .config import DUPLICATE_ROWS, TOTAL_DUPLICATES, DUPLICATE_PERCENTAGE, FIRST_OCCURRENCE, LAST_OCCURRENCE, DUPLICATE_COUNT
 
 
 class TableFormatter:
@@ -92,24 +95,28 @@ class TableFormatter:
                  inner_vertical_char: str = INNER_VERTICAL_CHAR, top_rule: bool = True, inner_horizontal: bool = False,
                  outer_sides: bool = True, inner_verticals: bool = True):
         self.headers = headers
-        self.report_data = report_data  # Data to be displayed in the table
-        self.col_widths = [col_width] * len(headers)  # Default width for all columns
+        self.report_data = report_data                                         # Data to be displayed in the table
+        self.col_widths = [col_width] * len(headers)                           # Default width for all columns
         self.max_col_width = max_col_width
         self.inner_sep_char = self._validate_char(inner_sep_char)
         self.header_sep_char = self._validate_char(header_sep_char)
-        self.outer_side_char = self._validate_char(outer_side_char)  # Outer side characters
-        self.inner_vertical_char = self._validate_char(inner_vertical_char)  # Inner vertical characters
-        self.top_rule = top_rule  # Whether to show the top rule
-        self.inner_horizontal = inner_horizontal  # Whether to show horizontal rules between rows
-        self.outer_sides = outer_sides  # Whether to include outer side characters
-        self.inner_verticals = inner_verticals  # Whether to include inner vertical separators
+        self.outer_side_char = self._validate_char(outer_side_char)            # Outer side characters
+        self.inner_vertical_char = self._validate_char(inner_vertical_char)    # Inner vertical characters
+        self.top_rule = top_rule                                               # Whether to show the top rule
+        self.inner_horizontal = inner_horizontal                               # Whether to show horizontal rules
+        # between rows
+        self.outer_sides = outer_sides                                         # Whether to include outer side
+        # characters
+        self.inner_verticals = inner_verticals                                 # Whether to include inner vertical
+        # separators
         self.top_left_char = self._validate_char(TOP_LEFT_CHAR)
         self.top_right_char = self._validate_char(TOP_RIGHT_CHAR)
         self.bottom_left_char = self._validate_char(BOTTOM_LEFT_CHAR)
         self.bottom_right_char = self._validate_char(BOTTOM_RIGHT_CHAR)
         self.top_join_char = self._validate_char(TOP_JOIN_CHAR)
         self.bottom_join_char = self._validate_char(BOTTOM_JOIN_CHAR)
-        self.adjust_special_col_widths()  # Adjust column widths for first and last columns
+        self.adjust_special_col_widths()                                       # Adjust column widths for first and
+        # last columns
 
     def _validate_char(self, char: str) -> str:
         """Validate that the character is not empty, replace with a single space if it is."""
@@ -119,14 +126,13 @@ class TableFormatter:
         """Adjust the column width for each column based on the length of the headers and the
         data."""
         for i, header in enumerate(self.headers):
-            max_length = len(header)  # Start with header length
-            # Compare to the length of the data in each row for this column
+            max_length = len(header)
             for row in self.report_data:
                 max_length = max(max_length, len(str(row[i])))
-            # Set the column width, but limit it to the max_col_width
             self.col_widths[i] = min(max_length, self.max_col_width)
 
-    def _wrap_text(self, text: str, width: int) -> List[str]:
+    @staticmethod
+    def _wrap_text(text: str, width: int) -> List[str]:
         """Wrap text to fit within the specified column width, avoiding word splits."""
         if text == "":  # Convert empty strings to a single space to maintain alignment
             text = " "
@@ -189,10 +195,8 @@ class TableFormatter:
         # Wrap each cell's text and collect the wrapped lines for each column
         wrapped_columns = [self._wrap_text(str(row_data[i]), self.col_widths[i]) for i in range(len(row_data))]
 
-        # Determine the maximum number of lines in any column (for multi-line rows)
         max_lines = max(len(wrapped) for wrapped in wrapped_columns)
 
-        # Prepare rows line by line
         result = []
         for line_idx in range(max_lines):
             row_parts = []
@@ -215,16 +219,11 @@ class TableFormatter:
 
     def format_table(self) -> str:
         """Format the entire table, including the header, separators, and report data."""
-        result = []
-
-        # Top rule
-        result.append(self.format_custom_top_rule())
-
-        # Header
-        result.append(self.format_header())
-
-        # Header separator
-        result.append(self.format_separator(self.header_sep_char))
+        result = [
+            self.format_custom_top_rule(),
+            self.format_header(),
+            self.format_separator(self.header_sep_char)
+            ]
 
         # Rows and inner separators (only add inner separators **between** rows)
         for idx, row_data in enumerate(self.report_data):
@@ -881,6 +880,7 @@ class CategoricalReportFormatter(ConfigurableSplitTableFormatter):
         """
         return super().format_table()
 
+
 class DuplicateRowsReportFormatter(ConfigurableSplitTableFormatter):
     """
     Formatter for generating and displaying a report of duplicate rows in a tabular format.
@@ -921,15 +921,21 @@ class DuplicateRowsReportFormatter(ConfigurableSplitTableFormatter):
     ---------------
     1. **DEFAULT Style**:
     ┌───────────────────────┬──────────────────────┬──────────────────────────┬─────────────────────┬─────────────────────┬───────────────────┐
-    | Duplicate Rows        | Total Duplicates     | Percentage (%)           | First Occurrence     | Last Occurrence     | Duplicate Count   |
+    | Duplicate Rows        | Total Duplicates     | Percentage (%)           | First Occurrence     | Last
+    Occurrence     | Duplicate Count   |
     ├───────────────────────┼──────────────────────┼──────────────────────────┼─────────────────────┼─────────────────────┼───────────────────┤
-    | Column A: 2, Column B: B  | 2                   | 33.33%                   | 1                   | 2                   | 2                 |
-    | Column A: 4, Column B: D  | 2                   | 33.33%                   | 4                   | 5                   | 2                 |
+    | Column A: 2, Column B: B  | 2                   | 33.33%                   | 1                   | 2
+           | 2                 |
+    | Column A: 4, Column B: D  | 2                   | 33.33%                   | 4                   | 5
+           | 2                 |
     └───────────────────────┴──────────────────────┴──────────────────────────┴─────────────────────┴─────────────────────┴───────────────────┘
     """
-    def __init__(self, style_name: str, duplicate_rows: Union[pd.DataFrame, pl.DataFrame], stats: Dict[str, Any], max_total_width: int = 120):
+
+    def __init__(self, style_name: str, duplicate_rows: Union[pd.DataFrame, pl.DataFrame], stats: Dict[str, Any],
+                 max_total_width: int = 120):
         # Define the headers using imported global variables from the config
-        headers = [DUPLICATE_ROWS, TOTAL_DUPLICATES, DUPLICATE_PERCENTAGE, FIRST_OCCURRENCE, LAST_OCCURRENCE, DUPLICATE_COUNT]
+        headers = [DUPLICATE_ROWS, TOTAL_DUPLICATES, DUPLICATE_PERCENTAGE, FIRST_OCCURRENCE, LAST_OCCURRENCE,
+                   DUPLICATE_COUNT]
 
         # Store the duplicate rows and stats
         self.duplicate_rows = duplicate_rows
@@ -962,14 +968,9 @@ class DuplicateRowsReportFormatter(ConfigurableSplitTableFormatter):
             last_occurrence = last_occurrences.get_loc(idx) if idx in last_occurrences else "N/A"
             duplicate_count = self.duplicate_rows.duplicated(keep=False).sum()
 
-            formatted_row = [
-                ", ".join([f"{col}: {row[col]}" for col in self.duplicate_rows.columns]),
-                str(self.stats["num_duplicates"]),
-                f"{self.stats['duplicate_percentage']:.2f}%",
-                str(first_occurrence),
-                str(last_occurrence),
-                str(duplicate_count)
-            ]
+            formatted_row = [", ".join([f"{col}: {row[col]}" for col in self.duplicate_rows.columns]),
+                str(self.stats["num_duplicates"]), f"{self.stats['duplicate_percentage']:.2f}%", str(first_occurrence),
+                str(last_occurrence), str(duplicate_count)]
             formatted_data.append(formatted_row)
 
         return formatted_data
@@ -984,6 +985,7 @@ class DuplicateRowsReportFormatter(ConfigurableSplitTableFormatter):
             The formatted duplicate rows report.
         """
         return super().format_table()
+
 
 # ========================
 # To do:
@@ -1094,8 +1096,8 @@ class DuplicateColumnsReportFormatter(ConfigurableSplitTableFormatter):
         formatted_data = []
         for col in self.duplicate_columns.columns:
             formatted_row = [str(col), str(self.duplicate_columns[col].duplicated().sum() + 1),
-                # Include the original column as well
-                f"{self.stats['duplicate_percentage']:.2f}%"]
+                             # Include the original column as well
+                             f"{self.stats['duplicate_percentage']:.2f}%"]
             formatted_data.append(formatted_row)
         return formatted_data
 
@@ -1110,7 +1112,6 @@ class DuplicateColumnsReportFormatter(ConfigurableSplitTableFormatter):
         """
         return super().format_table()
 
-
 # Other reports
 # 	1.	Missing Data Report
 # 	2.	Outlier Detection Report
@@ -1123,7 +1124,7 @@ class DuplicateColumnsReportFormatter(ConfigurableSplitTableFormatter):
 # ================================================
 # Other Advanced Reports
 # 	1.	Time Series Analysis Report
-# 	2.	Multicollinearity Detection Report
+# 	2.	Multi-collinearity Detection Report
 # 	3.	Feature Importance Report
 # 	4.	PCA & Dimensionality Reduction Report
 # 	5.	Data Distribution Analysis Report
@@ -1144,4 +1145,3 @@ class DuplicateColumnsReportFormatter(ConfigurableSplitTableFormatter):
 #     def format(self, missingness_report: Dict[str, Any]) -> str:
 #         field_format = "{missing_count:>8} | {missing_percentage:>26.1f}%"
 #         return self.format_report(missingness_report, field_format)
-
