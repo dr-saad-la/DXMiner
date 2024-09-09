@@ -98,3 +98,123 @@ def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[s
             print(_separator_line(f'DataFrame {i}', separator_length))
             print(df.head())
         print("=" * separator_length)
+
+
+def generate_statistics(*datasets) -> dict:
+    """
+    Generate descriptive statistics for multiple datasets.
+
+    Parameters:
+    -----------
+    *datasets : pd.DataFrame
+        One or more pandas DataFrames. Each dataset provided as a positional argument will have
+        its descriptive statistics computed.
+
+    Returns:
+    --------
+    dict
+        A dictionary where the keys are dataset labels (e.g., 'farm_a', 'farm_b', etc.) and the
+        values are the transposed descriptive statistics of each corresponding dataset.
+
+    Example Usage:
+    --------------
+    >>> farm_a = pd.DataFrame(...)
+    >>> farm_b = pd.DataFrame(...)
+    >>> stats = generate_statistics(farm_a, farm_b)
+
+    The resulting dictionary will contain descriptive statistics for both `farm_a` and `farm_b`:
+    {
+        "farm_a": descriptive statistics of farm_a DataFrame,
+        "farm_b": descriptive statistics of farm_b DataFrame
+    }
+
+    Notes:
+    ------
+    - The function uses `pd.DataFrame.describe()` to compute the statistics and transposes
+      the result to make the columns as rows.
+    - Dataset labels are automatically assigned as 'farm_a', 'farm_b', etc., based on the order
+      of the arguments provided.
+    """
+    stats_dict = {}
+    for i, dataset in enumerate(datasets, start=1):
+        stats_dict[f"farm_{chr(96 + i)}"] = dataset.describe().T
+    return stats_dict
+
+
+def validate_dataframes(df1: pd.DataFrame, df2: pd.DataFrame) -> None:
+    """
+    Validate if two DataFrames have the same index and columns.
+
+    Parameters
+    ----------
+    df1 : pd.DataFrame
+        The first DataFrame to validate.
+    df2 : pd.DataFrame
+        The second DataFrame to validate.
+
+    Raises
+    ------
+    AssertionError
+        If the indices or columns of the two DataFrames do not match.
+    """
+    assert df1.index.equals(df2.index), "Indices do not match"
+    assert df1.columns.equals(df2.columns), "Columns do not match"
+
+
+def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+    """
+    Compare the descriptive statistics of two datasets.
+
+    Parameters
+    ----------
+    df1 : pd.DataFrame
+        The first dataset to compare.
+    df2 : pd.DataFrame
+        The second dataset to compare.
+
+    Returns
+    -------
+    pd.DataFrame
+        The difference between the descriptive statistics of the two datasets.
+    """
+    # Get descriptive statistics
+    desc_df1 = df1.describe().T
+    desc_df2 = df2.describe().T
+
+    # Ensure the two tables have the same index and columns
+    validate_dataframes(desc_df1, desc_df2)
+
+    # Compute the difference between the two tables
+    comparison = desc_df1 - desc_df2
+
+    return comparison
+
+
+def display_comparison(comparison_df: pd.DataFrame) -> None:
+    """
+    Display the comparison results.
+
+    Parameters
+    ----------
+    comparison_df : pd.DataFrame
+        The DataFrame containing the comparison results.
+    """
+    print("Comparison of Datasets:")
+    print(comparison_df)
+
+
+def compare_multiple_datasets(datasets: list) -> None:
+    """
+    Compare multiple datasets pairwise and display the results.
+
+    Parameters
+    ----------
+    datasets : list
+        A list of datasets to compare.
+    """
+    for i in range(len(datasets) - 1):
+        df1 = datasets[i]
+        df2 = datasets[i + 1]
+        comparison_result = compare_datasets(df1, df2)
+        print(f"\nComparison between dataset {i + 1} and dataset {i + 2}:")
+        display_comparison(comparison_result)
