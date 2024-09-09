@@ -4,7 +4,12 @@ Information about a data frame.
 Get all the necessary information about a data.
 """
 import io
-from typing import Union, List, Optional, Callable
+from typing import Callable
+from typing import List
+from typing import Optional
+from typing import Union
+from typing import Dict
+
 import pandas as pd
 import polars as pl
 
@@ -116,31 +121,17 @@ def _check_dtype(df):
         return "pandas"
     if isinstance(df, pl.DataFrame):
         return "polars"
-    raise ValueError(
-        "The input data is neither a Pandas DataFrame nor a Polars DataFrame."
-    )
+    raise ValueError("The input data is neither a Pandas DataFrame nor a Polars DataFrame.")
 
 
-def head_tail(
-    df: Union[pd.DataFrame, pl.DataFrame],
-    n: int = 5,
-    sort: bool = False,
-    cols: Optional[Union[str, List[str]]] = None,
-    sort_ascending: Union[bool, List[bool]] = True,
+def head_tail(df: Union[pd.DataFrame, pl.DataFrame], n: int = 5, sort: bool = False,
+    cols: Optional[Union[str, List[str]]] = None, sort_ascending: Union[bool, List[bool]] = True,
     filter_funcs: Optional[
-        List[
-            Callable[
-                [Union[pd.DataFrame, pl.DataFrame]], Union[pd.DataFrame, pl.DataFrame]
-            ]
-        ]
-    ] = None,
-    select_cols: Optional[Union[str, List[str]]] = None,
-    handle_na: Optional[str] = None,  # Options: 'drop', 'fill'
-    fill_value: Optional[Union[int, float, str]] = None,
-    display_width: Optional[int] = None,
-    verbose: bool = True,
+        List[Callable[[Union[pd.DataFrame, pl.DataFrame]], Union[pd.DataFrame, pl.DataFrame]]]] = None,
+    select_cols: Optional[Union[str, List[str]]] = None, handle_na: Optional[str] = None,  # Options: 'drop', 'fill'
+    fill_value: Optional[Union[int, float, str]] = None, display_width: Optional[int] = None, verbose: bool = True,
     save_output: Optional[str] = None,  # Path to save the output
-) -> None:
+    ) -> None:
     """
     Display the first and last `n` rows of the DataFrame with optional sorting, filtering, NaN handling, and more.
 
@@ -202,7 +193,7 @@ def head_tail(
     >>> def filter_func(df):
     >>>     return df[df['A'] > 2]
     >>>
-    >>> display_head_tail(
+    >>> head_tail(
     >>>     df,
     >>>     n=2,
     >>>     sort=True,
@@ -225,11 +216,8 @@ def head_tail(
     if sort:
         if not cols:
             raise ValueError("`cols` must be provided when `sort` is True.")
-        df = (
-            df.sort(by=cols, reverse=not sort_ascending)
-            if isinstance(df, pl.DataFrame)
-            else df.sort_values(by=cols, ascending=sort_ascending)
-        )
+        df = (df.sort(by=cols, reverse=not sort_ascending) if isinstance(df, pl.DataFrame) else df.sort_values(by=cols,
+                                                                                                               ascending=sort_ascending))
 
     if filter_funcs:
         for func in filter_funcs:
@@ -258,15 +246,9 @@ def head_tail(
         pd.reset_option("display.max_columns")
 
 
-def ntop(
-    df: Union[pd.DataFrame, pl.DataFrame],
-    n: int = 5,
-    cols: Optional[Union[str, List[str]]] = None,
-    ascending: bool = False,
-    display_width: Optional[int] = None,
-    verbose: bool = True,
-    save_output: Optional[str] = None,
-) -> None:
+def ntop(df: Union[pd.DataFrame, pl.DataFrame], n: int = 5, cols: Optional[Union[str, List[str]]] = None,
+    ascending: bool = False, display_width: Optional[int] = None, verbose: bool = True,
+    save_output: Optional[str] = None, ) -> None:
     """
     Display the top `n` rows of the DataFrame, sorted by the specified columns in descending order by default.
 
@@ -340,6 +322,95 @@ def ntop(
         pd.reset_option("display.max_columns")
 
 
+def _separator_line(name: str, length: int = 80) -> str:
+    """
+    Helper function to create a separator line with the DataFrame name centered.
+
+    Parameters
+    ----------
+    name : str
+        The name to be displayed in the center of the separator.
+    length : int, optional
+        The total length of the separator line (default is 80).
+
+    Returns
+    -------
+    str
+        A formatted string with the name centered in the separator line.
+    """
+    return f"{'=' * ((length - len(name)) // 2)} {name} {'=' * ((length - len(name)) // 2)}"
+
+
+def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[str, Union[pd.DataFrame, pl.DataFrame]]],
+               separator_length: int = 80) -> None:
+    """
+    Print the head of multiple DataFrames (Pandas or Polars) with a separator line in between.
+
+    Parameters
+    ----------
+    dataframes : Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[str, Union[pd.DataFrame, pl.DataFrame]]]
+        A list or dictionary of Pandas or Polars DataFrames to display.
+    separator_length : int, optional
+        Length of the separator line (default is 80).
+
+    Examples
+    --------
+    Using a list of DataFrames:
+
+    >>> import pandas as pd
+    >>> import polars as pl
+    >>> farm_a = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+    >>> farm_b = pl.DataFrame({'C': [7, 8, 9], 'D': [10, 11, 12]})
+    >>> data_heads([farm_a, farm_b])
+
+    Output:
+    =============================== DataFrame 1 ===============================
+       A  B
+    0  1  4
+    1  2  5
+    2  3  6
+    =============================== DataFrame 2 ===============================
+    shape: (3, 2)
+    ┌─────┬─────┐
+    │ C   │ D   │
+    ├─────┼─────┤
+    │ 7   │ 10  │
+    │ 8   │ 11  │
+    │ 9   │ 12  │
+    └─────┴─────┘
+
+    Using a dictionary of DataFrames:
+
+    >>> dataframes_dict = {'Farm A': farm_a, 'Farm B': farm_b}
+    >>> data_heads(dataframes_dict)
+
+    Output:
+    =============================== Farm A ===============================
+       A  B
+    0  1  4
+    1  2  5
+    2  3  6
+    =============================== Farm B ===============================
+    shape: (3, 2)
+    ┌─────┬─────┐
+    │ C   │ D   │
+    ├─────┼─────┤
+    │ 7   │ 10  │
+    │ 8   │ 11  │
+    │ 9   │ 12  │
+    └─────┴─────┘
+    """
+    if isinstance(dataframes, dict):
+        for name, df in dataframes.items():
+            print(_separator_line(name, separator_length))
+            print(df.head())
+        print("=" * separator_length)
+    else:
+        for i, df in enumerate(dataframes, start=1):
+            print(_separator_line(f'DataFrame {i}', separator_length))
+            print(df.head())
+        print("=" * separator_length)
+
 def data_summary(df):
     pass
 
@@ -348,8 +419,8 @@ def memory_optimization_suggestions(df):
     pass
 
 
-def describe_percentiles(df, percentiles=[0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99]):
-    pass
+# def describe_percentiles(df, percentiles=[0.01, 0.05, 0.25, 0.5, 0.75, 0.95, 0.99]):
+#    pass
 
 
 def duplicate_rows_report(df):
@@ -379,6 +450,5 @@ def interactions_report(df, features=None):
 def text_data_summary(df, text_column):
     pass
 
-
-def transformation_suggestions(df):
+def transformation_suggestions(df): #noqu:
     pass
