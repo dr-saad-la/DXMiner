@@ -119,3 +119,5 @@ requirements_dev.txt
 
 ## personal todo list to be working on regulary
 todo.rst
+## Ignore pylint configuration
+.pylintrc
