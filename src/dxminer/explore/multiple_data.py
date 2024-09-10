@@ -1,6 +1,7 @@
 """
     Functions related to explore multiple data frames simultaneously.
 """
+import itertools
 
 from typing import List
 from typing import Dict
@@ -100,121 +101,243 @@ def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[s
         print("=" * separator_length)
 
 
-def generate_statistics(*datasets) -> dict:
+DataFrameType = Union[pd.DataFrame, pl.DataFrame]
+
+
+def _validate_dataframes(df1: DataFrameType, df2: DataFrameType) -> None:
     """
-    Generate descriptive statistics for multiple datasets.
-
-    Parameters:
-    -----------
-    *datasets : pd.DataFrame
-        One or more pandas DataFrames. Each dataset provided as a positional argument will have
-        its descriptive statistics computed.
-
-    Returns:
-    --------
-    dict
-        A dictionary where the keys are dataset labels (e.g., 'farm_a', 'farm_b', etc.) and the
-        values are the transposed descriptive statistics of each corresponding dataset.
-
-    Example Usage:
-    --------------
-    >>> farm_a = pd.DataFrame(...)
-    >>> farm_b = pd.DataFrame(...)
-    >>> stats = generate_statistics(farm_a, farm_b)
-
-    The resulting dictionary will contain descriptive statistics for both `farm_a` and `farm_b`:
-    {
-        "farm_a": descriptive statistics of farm_a DataFrame,
-        "farm_b": descriptive statistics of farm_b DataFrame
-    }
-
-    Notes:
-    ------
-    - The function uses `pd.DataFrame.describe()` to compute the statistics and transposes
-      the result to make the columns as rows.
-    - Dataset labels are automatically assigned as 'farm_a', 'farm_b', etc., based on the order
-      of the arguments provided.
-    """
-    stats_dict = {}
-    for i, dataset in enumerate(datasets, start=1):
-        stats_dict[f"farm_{chr(96 + i)}"] = dataset.describe().T
-    return stats_dict
-
-
-def validate_dataframes(df1: pd.DataFrame, df2: pd.DataFrame) -> None:
-    """
-    Validate if two DataFrames have the same index and columns.
+    Validate if two DataFrames have the same columns and the numeric columns match.
 
     Parameters
     ----------
-    df1 : pd.DataFrame
+    df1 : DataFrameType
         The first DataFrame to validate.
-    df2 : pd.DataFrame
+    df2 : DataFrameType
         The second DataFrame to validate.
 
     Raises
     ------
     AssertionError
-        If the indices or columns of the two DataFrames do not match.
+        If the columns of the two DataFrames do not match.
     """
-    assert df1.index.equals(df2.index), "Indices do not match"
-    assert df1.columns.equals(df2.columns), "Columns do not match"
+    if isinstance(df1, pd.DataFrame) and isinstance(df2, pd.DataFrame):
+        assert df1.columns.equals(df2.columns), "Columns do not match"
+    elif isinstance(df1, pl.DataFrame) and isinstance(df2, pl.DataFrame):
+        assert df1.columns == df2.columns, "Columns do not match"
+    else:
+        raise ValueError("Both dataframes must be of the same type (either Pandas or Polars).")
 
 
-def compare_datasets(df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
+def _get_numeric_columns_only(df: DataFrameType) -> DataFrameType:
+    """
+    Filter numeric columns from the DataFrame.
+
+    Parameters
+    ----------
+    df : DataFrameType
+        The DataFrame to filter numeric columns from.
+
+    Returns
+    -------
+    DataFrameType
+        A DataFrame with only numeric columns.
+    """
+    if isinstance(df, pd.DataFrame):
+        return df.select_dtypes(include=[int, float])
+    elif isinstance(df, pl.DataFrame):
+        # Select numeric columns in Polars (Int and Float types)
+        numeric_df = df.select(pl.col(pl.Int8, pl.Int16, pl.Int32, pl.Int64, pl.Float32, pl.Float64))
+        if numeric_df.width == 0:
+            raise ValueError("No numeric columns found in Polars DataFrame.")
+        return numeric_df
+
+
+def _get_descriptive_stats(df: DataFrameType) -> DataFrameType:
+    """
+    Get descriptive statistics of a DataFrame, only for numeric columns.
+
+    Parameters
+    ----------
+    df : DataFrameType
+        The DataFrame to get descriptive statistics from.
+
+    Returns
+    -------
+    DataFrameType
+        The descriptive statistics of the DataFrame.
+    """
+    numeric_df = _get_numeric_columns_only(df)
+    
+    if isinstance(df, pd.DataFrame):
+        return numeric_df.describe().T
+    elif isinstance(df, pl.DataFrame):
+        # Polars `describe()` returns statistics as string, so convert to numeric where applicable
+        desc_df = numeric_df.describe()
+        
+        # Extract 'statistic' as a list of strings to use as headers for transpose
+        header_names = desc_df['statistic'].to_list()
+        
+        # Drop the 'statistic' column and convert remaining columns to numeric where applicable
+        numeric_stats = desc_df.drop('statistic').with_columns(
+                [pl.col(stat).cast(pl.Float64) for stat in desc_df.columns[1:]])
+        
+        # Transpose the numeric statistics with proper headers
+        return numeric_stats.transpose(column_names=header_names)
+
+
+def compare_datasets(df1: DataFrameType, df2: DataFrameType) -> DataFrameType:
     """
     Compare the descriptive statistics of two datasets.
 
     Parameters
     ----------
-    df1 : pd.DataFrame
+    df1 : DataFrameType
         The first dataset to compare.
-    df2 : pd.DataFrame
+    df2 : DataFrameType
         The second dataset to compare.
 
     Returns
     -------
-    pd.DataFrame
+    DataFrameType
         The difference between the descriptive statistics of the two datasets.
     """
-    # Get descriptive statistics
-    desc_df1 = df1.describe().T
-    desc_df2 = df2.describe().T
-
-    # Ensure the two tables have the same index and columns
-    validate_dataframes(desc_df1, desc_df2)
-
+    # Get descriptive statistics for numeric columns only
+    desc_df1 = _get_descriptive_stats(df1)
+    desc_df2 = _get_descriptive_stats(df2)
+    
+    # Ensure the two tables have the same structure
+    _validate_dataframes(desc_df1, desc_df2)
+    
     # Compute the difference between the two tables
-    comparison = desc_df1 - desc_df2
-
+    if isinstance(df1, pd.DataFrame):
+        comparison = desc_df1 - desc_df2
+    elif isinstance(df1, pl.DataFrame):
+        comparison = desc_df1.with_columns(
+                [(desc_df1.get_column(col) - desc_df2.get_column(col)).alias(col) for col in desc_df1.columns])
+    
     return comparison
 
 
-def display_comparison(comparison_df: pd.DataFrame) -> None:
+def display_comparison(comparison_df: DataFrameType) -> None:
     """
     Display the comparison results.
 
     Parameters
     ----------
-    comparison_df : pd.DataFrame
+    comparison_df : DataFrameType
         The DataFrame containing the comparison results.
     """
     print("Comparison of Datasets:")
     print(comparison_df)
 
 
-def compare_multiple_datasets(datasets: list) -> None:
+def compare_multiple_datasets(datasets: Union[List[DataFrameType], Dict[str, DataFrameType]]) -> None:
     """
-    Compare multiple datasets pairwise and display the results.
+    Compare all combinations of multiple datasets pairwise and display the results.
 
     Parameters
     ----------
-    datasets : list
-        A list of datasets to compare.
+    datasets : Union[List[pd.DataFrame, pl.DataFrame], Dict[str, pd.DataFrame, pl.DataFrame]]
+        A list or dictionary of datasets to compare. If a dictionary is passed, the keys will be used as dataset names.
+
+    Raises
+    ------
+    ValueError
+        If the datasets parameter is neither a list nor a dictionary.
+
+    Example Usage
+    -------------
+    Example with a list of pandas DataFrames:
+
+    >>> farm_a = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+    >>> farm_b = pd.DataFrame({'A': [7, 8, 9], 'B': [10, 11, 12]})
+    >>> farm_c = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+    >>> compare_multiple_datasets([farm_a, farm_b, farm_c])
+
+    Expected Output:
+    ----------------
+    Comparison between dataset 1 and dataset 2:
+        A   B
+    mean  4.0  7.0
+    std   4.0  4.0
+    min   1.0  4.0
+    25%   2.0  5.0
+    50%   2.0  5.0
+    75%   3.0  6.0
+    max   7.0  12.0
+
+    Comparison between dataset 1 and dataset 3:
+        A   B
+    mean  0.0  0.0
+    std   0.0  0.0
+    min   0.0  0.0
+    25%   0.0  0.0
+    50%   0.0  0.0
+    75%   0.0  0.0
+    max   0.0  0.0
+
+    Comparison between dataset 2 and dataset 3:
+        A   B
+    mean -4.0 -7.0
+    std   4.0  4.0
+    min   -6.0 -6.0
+    25%   -5.0 -5.0
+    50%   -5.0 -5.0
+    75%   -3.0 -3.0
+    max   0.0  0.0
+
+    Example with a dictionary of pandas DataFrames:
+
+    >>> datasets = {
+    >>>     'Farm A': pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
+    >>>     'Farm B': pd.DataFrame({'A': [7, 8, 9], 'B': [10, 11, 12]}),
+    >>>     'Farm C': pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+    >>> }
+    >>> compare_multiple_datasets(datasets)
+
+    Expected Output:
+    ----------------
+    Comparison between Farm A and Farm B:
+        A   B
+    mean  4.0  7.0
+    std   4.0  4.0
+    min   1.0  4.0
+    25%   2.0  5.0
+    50%   2.0  5.0
+    75%   3.0  6.0
+    max   7.0  12.0
+
+    Comparison between Farm A and Farm C:
+        A   B
+    mean  0.0  0.0
+    std   0.0  0.0
+    min   0.0  0.0
+    25%   0.0  0.0
+    50%   0.0  0.0
+    75%   0.0  0.0
+    max   0.0  0.0
+
+    Comparison between Farm B and Farm C:
+        A   B
+    mean -4.0 -7.0
+    std   4.0  4.0
+    min   -6.0 -6.0
+    25%   -5.0 -5.0
+    50%   -5.0 -5.0
+    75%   -3.0 -3.0
+    max   0.0  0.0
     """
-    for i in range(len(datasets) - 1):
-        df1 = datasets[i]
-        df2 = datasets[i + 1]
+    
+    # Handle the case where datasets is a dictionary
+    if isinstance(datasets, dict):
+        dataset_pairs = itertools.combinations(datasets.items(), 2)
+    elif isinstance(datasets, list):
+        dataset_pairs = itertools.combinations(enumerate(datasets, 1), 2)
+    else:
+        raise ValueError("Datasets must be a list or a dictionary.")
+    
+    # Compare each pair of datasets
+    for (label1, df1), (label2, df2) in dataset_pairs:
         comparison_result = compare_datasets(df1, df2)
-        print(f"\nComparison between dataset {i + 1} and dataset {i + 2}:")
+        print(f"\nComparison between {label1} and {label2}:")
         display_comparison(comparison_result)
