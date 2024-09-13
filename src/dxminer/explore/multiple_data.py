@@ -10,24 +10,39 @@ from typing import Union
 
 import pandas as pd
 import polars as pl
+import numpy as np
+from scipy import stats
 
-def _separator_line(name: str, length: int = 80) -> str:
+from dxminer._typing import DataFrameType
+
+def _create_centered_header(title: str, length: int = 80, char: str = '=') -> str:
     """
-    Helper function to create a separator line with the DataFrame name centered.
+    Helper function to create a centered header with a title in the middle and a specified separator character.
 
     Parameters
     ----------
-    name : str
-        The name to be displayed in the center of the separator.
+    title : str
+        The title or name to be displayed in the center of the header.
     length : int, optional
-        The total length of the separator line (default is 80).
+        The total length of the header line (default is 80).
+    char : str, optional
+        The character to use for the separator (default is '=').
 
     Returns
     -------
     str
-        A formatted string with the name centered in the separator line.
+        A formatted string with the title centered and the separator character filling the rest of the line.
+
+    Example
+    -------
+    >>> print(_create_centered_header('DataFrame A'))
+    =============================== DataFrame A ===============================
     """
-    return f"{'=' * ((length - len(name)) // 2)} {name} {'=' * ((length - len(name)) // 2)}"
+    if len(title) >= length:
+        return title
+    
+    padding = (length - len(title) - 2) // 2
+    return f"{char * padding} {title} {char * padding}"
 
 
 def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[str, Union[pd.DataFrame, pl.DataFrame]]],
@@ -91,17 +106,14 @@ def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[s
     """
     if isinstance(dataframes, dict):
         for name, df in dataframes.items():
-            print(_separator_line(name, separator_length))
+            print(_create_centered_header(name, separator_length))
             print(df.head())
         print("=" * separator_length)
     else:
         for i, df in enumerate(dataframes, start=1):
-            print(_separator_line(f'DataFrame {i}', separator_length))
+            print(_create_centered_header(f'DataFrame {i}', separator_length))
             print(df.head())
         print("=" * separator_length)
-
-
-DataFrameType = Union[pd.DataFrame, pl.DataFrame]
 
 
 def _validate_dataframes(df1: DataFrameType, df2: DataFrameType) -> None:
@@ -150,7 +162,6 @@ def _get_numeric_columns_only(df: DataFrameType) -> DataFrameType:
         if numeric_df.width == 0:
             raise ValueError("No numeric columns found in Polars DataFrame.")
         return numeric_df
-
 
 def _get_descriptive_stats(df: DataFrameType) -> DataFrameType:
     """
@@ -341,3 +352,200 @@ def compare_multiple_datasets(datasets: Union[List[DataFrameType], Dict[str, Dat
         comparison_result = compare_datasets(df1, df2)
         print(f"\nComparison between {label1} and {label2}:")
         display_comparison(comparison_result)
+        
+# =======================================================================================
+#           Statistics part for multiple datasets
+#           This section will be move to another module
+
+def compare_means(df1: DataFrameType, df2: DataFrameType) -> DataFrameType:
+    """
+    Calculate the difference in means between two datasets.
+
+    This function computes the difference in column-wise means between two pandas or polars DataFrames.
+    The function assumes that the two DataFrames have matching column names and numerical columns.
+
+    Parameters
+    ----------
+    df1 : DataFrameType
+        The first dataset (pandas or polars DataFrame) to compare.
+    df2 : DataFrameType
+        The second dataset (pandas or polars DataFrame) to compare.
+
+    Returns
+    -------
+    DataFrameType
+        A DataFrame containing the differences in means for each column.
+
+    Raises
+    ------
+    ValueError
+        If the input datasets have differing columns.
+
+    Example Usage
+    -------------
+    >>> farm_a = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+    >>> farm_b = pd.DataFrame({'A': [7, 8, 9], 'B': [10, 11, 12]})
+    >>> compare_means(farm_a, farm_b)
+
+    Expected Output:
+    ----------------
+    A   -6.0
+    B   -6.0
+    dtype: float64
+    """
+    
+    # Ensure both DataFrames have the same columns
+    if not df1.columns.equals(df2.columns):
+        raise ValueError("The input datasets must have the same columns.")
+    
+    # Handle pandas DataFrame
+    if isinstance(df1, pd.DataFrame) and isinstance(df2, pd.DataFrame):
+        mean_diff = df1.mean() - df2.mean()
+    
+    # Handle polars DataFrame
+    elif isinstance(df1, pl.DataFrame) and isinstance(df2, pl.DataFrame):
+        mean_diff = df1.select([pl.mean(col) for col in df1.columns]) - df2.select(
+                [pl.mean(col) for col in df2.columns])
+    
+    else:
+        raise TypeError("Both inputs must be either pandas or polars DataFrames.")
+    
+    return mean_diff
+
+
+def perform_ttest(df1: DataFrameType, df2: DataFrameType) -> Dict[str, Dict[str, float]]:
+    """
+    Perform an independent T-test to compare the means of numeric columns from two datasets (Pandas or Polars).
+
+    The function iterates through all columns in the datasets, identifies the numeric columns,
+    and computes the T-statistic and p-value for each column using the T-test.
+    Non-numeric columns are ignored.
+
+    Parameters
+    ----------
+    df1 : DataFrameType
+        The first dataset (Pandas or Polars DataFrame) containing numeric and other types of columns.
+    df2 : DataFrameType
+        The second dataset (Pandas or Polars DataFrame) containing numeric and other types of columns.
+
+    Returns
+    -------
+    ttest_results : dict
+        A dictionary where the keys are the column names, and the values are dictionaries containing
+        the T-statistic ("t_stat") and the p-value ("p_val") for each numeric column comparison.
+        Example:
+        {
+            "column_name_1": {"t_stat": float, "p_val": float},
+            "column_name_2": {"t_stat": float, "p_val": float},
+            ...
+        }
+
+    Notes
+    -----
+    - The function only performs the T-test on numeric columns. Non-numeric columns are ignored.
+    - NaN values are dropped from the columns before performing the T-test.
+    - A p-value lower than a significance threshold (typically 0.05) indicates that the means of the two
+      datasets for the column being tested are significantly different.
+
+    Example
+    -------
+    >>> df1 = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+    >>> df2 = pd.DataFrame({'A': [7, 8, 9], 'B': [10, 11, 12]})
+    >>> ttest_results = perform_ttest(df1, df2)
+    >>> for col, result in ttest_results.items():
+    >>>     print(f"Column: {col}, T-statistic: {result['t_stat']}, P-value: {result['p_val']}")
+
+    Expected Output:
+    ----------------
+    Column: A, T-statistic: -6.928, P-value: 0.002
+    Column: B, T-statistic: -6.928, P-value: 0.002
+    """
+    ttest_results = {}
+    
+    # Determine if we're working with Pandas or Polars DataFrames
+    if isinstance(df1, pd.DataFrame) and isinstance(df2, pd.DataFrame):
+        # Iterate through columns in the Pandas DataFrame
+        for col in df1.columns:
+            if np.issubdtype(df1[col].dtype, np.number) and np.issubdtype(df2[col].dtype, np.number):
+                # Perform T-test on non-NaN values of the column
+                t_stat, p_val = stats.ttest_ind(df1[col].dropna(), df2[col].dropna())
+                # Store the results in the dictionary
+                ttest_results[col] = {"t_stat": t_stat, "p_val": p_val}
+    
+    elif isinstance(df1, pl.DataFrame) and isinstance(df2, pl.DataFrame):
+        # Iterate through columns in the Polars DataFrame
+        for col in df1.columns:
+            if df1[col].dtype in [pl.Float32, pl.Float64, pl.Int32, pl.Int64] and df2[col].dtype in [pl.Float32,
+                                                                                                     pl.Float64,
+                                                                                                     pl.Int32,
+                                                                                                     pl.Int64]:
+                # Perform T-test on non-NaN values of the column (Polars to Pandas conversion for T-test)
+                t_stat, p_val = stats.ttest_ind(df1[col].drop_nulls().to_pandas(), df2[col].drop_nulls().to_pandas())
+                # Store the results in the dictionary
+                ttest_results[col] = {"t_stat": t_stat, "p_val": p_val}
+    
+    else:
+        raise TypeError("Both inputs must be either Pandas or Polars DataFrames.")
+    
+    return ttest_results
+
+# The ttest function
+def filter_significant_results(ttest_results: Dict[str, Dict[str, float]], p_value_threshold: float = 0.05) -> Dict[str, Dict[str, float]]:
+    """
+    Filter the T-test results to return only significant results based on the p-value.
+
+    Parameters
+    ----------
+    ttest_results : dict
+        A dictionary where keys are column names, and values are dicts containing 't_stat' and 'p_val'.
+    p_value_threshold : float, optional
+        The threshold for significance, default is 0.05.
+
+    Returns
+    -------
+    dict
+        A dictionary containing only the significant features where p-value < p_value_threshold.
+    """
+    significant_results = {
+        col: stats for col, stats in ttest_results.items() if stats['p_val'] < p_value_threshold
+    }
+    return significant_results
+
+
+def compare_multiple_datasets_significant(datasets: Union[List[pd.DataFrame], List[pl.DataFrame]],
+                                          p_value_threshold: float = 0.05) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """
+    Perform pairwise T-test comparisons between multiple datasets and return only significant features.
+
+    Parameters
+    ----------
+    datasets : list
+        A list of pandas or polars DataFrames to compare.
+    p_value_threshold : float, optional
+        The p-value threshold for significance (default is 0.05).
+
+    Returns
+    -------
+    dict
+        A dictionary of significant results for each pair of datasets.
+        The format is { 'dataset_i_vs_dataset_j': { 'feature': { 't_stat': float, 'p_val': float }, ... } }
+    """
+    significant_results = {}
+    
+    # Perform pairwise comparisons
+    for i in range(len(datasets) - 1):
+        for j in range(i + 1, len(datasets)):
+            df1 = datasets[i]
+            df2 = datasets[j]
+            
+            # Perform the T-test for the current pair of datasets
+            ttest_results = perform_ttest(df1, df2)
+            
+            # Filter only significant results
+            significant = filter_significant_results(ttest_results, p_value_threshold)
+            
+            # Store the significant results for the current dataset pair
+            if significant:
+                significant_results[f'dataset_{i + 1}_vs_dataset_{j + 1}'] = significant
+    
+    return significant_results
