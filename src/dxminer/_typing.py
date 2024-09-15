@@ -13,30 +13,14 @@ Types Defined:
 - Numeric: Union of int and float for numerical data types.
 - StringType: Alias for strings.
 - ColumnName: Alias for either strings or integers used as column names.
+- RowType: List representing a row of data.
 - ColumnList: List of column names (strings or integers).
-- NumRowType: Alias for rows containing numeric values (e.g., float, int, str).
-- RowType: Alias for a row of data represented as a dictionary or list.
-- IndexType: Alias for pandas or polars index types (i.e., for referencing rows).
-- DataFrameFunction: Alias for functions that transform a DataFrame.
-- RowFunction: Alias for functions that transform individual rows of data.
-- DataFrameTuple: Tuple of DataFrames.
-- OptionalDataFrame: DataFrame that could be None.
-- MetadataType: Dictionary for storing metadata or configuration options.
-- NumericList: List of numeric values (e.g., for storing statistics or results).
-- OptionalMetadata: Metadata that could be None.
-- ExceptionType: Generic exception type, used to represent an exception or error message.
+- IndexType: Alias for pandas index type (Polars doesn't have an index concept).
 
 Note: This module is intended for internal use only.
 """
-
 from pathlib import Path
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Union, Any, Callable, Tuple, Optional
 
 import numpy as np
 import pandas as pd
@@ -66,20 +50,23 @@ ColumnName = Union[str, int]
 # List of column names
 ColumnList = List[ColumnName]
 
-# Alias for rows containing numeric values
+# Alias for rows of data, represented as lists
 NumRowType = List[Union[str, float, int]]
 
-# Alias for rows of data, represented as lists or dictionaries
-RowType = Union[Dict[ColumnName, Any], List[Any]]
-
-# Index type for row indexing (could be pandas or polars index)
-IndexType = Union[pd.Index, pl.Index]
+# Index type for row indexing (only Pandas uses an index)
+IndexType = pd.Index
 
 # Array-like structures (e.g., lists or NumPy arrays)
 ArrayLike = Union[List, np.ndarray]
 
 # Alias for file paths, allowing either strings or Path objects
 PathType = Union[str, Path]
+
+# Column name types, since columns could be either strings or integers
+ColumnNameType = Union[str, int]
+
+# Single row, can be a dictionary or list representing data
+RowType = Union[Dict[ColumnNameType, Any], List[Any]]
 
 # Function type for functions taking a DataFrame and returning a DataFrame
 DataFrameFunction = Callable[[DataFrameType], DataFrameType]
