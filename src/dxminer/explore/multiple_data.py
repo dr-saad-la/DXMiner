@@ -13,7 +13,9 @@ import polars as pl
 import numpy as np
 from scipy import stats
 
-from dxminer._typing import DataFrameType
+from .._typing import DataFrameType
+from .._typing import DataFrameList
+from .._typing import DataFrameDict
 
 def _create_centered_header(title: str, length: int = 80, char: str = '=') -> str:
     """
@@ -45,14 +47,13 @@ def _create_centered_header(title: str, length: int = 80, char: str = '=') -> st
     return f"{char * padding} {title} {char * padding}"
 
 
-def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[str, Union[pd.DataFrame, pl.DataFrame]]],
-               separator_length: int = 80) -> None:
+def data_heads(dataframes: Union[DataFrameList, DataFrameDict], separator_length: int = 80) -> None:
     """
     Print the head of multiple DataFrames (Pandas or Polars) with a separator line in between.
 
     Parameters
     ----------
-    dataframes : Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[str, Union[pd.DataFrame, pl.DataFrame]]]
+    dataframes : Union[DataFrameList, DataFrameDict]
         A list or dictionary of Pandas or Polars DataFrames to display.
     separator_length : int, optional
         Length of the separator line (default is 80).
@@ -63,46 +64,46 @@ def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[s
 
     >>> import pandas as pd
     >>> import polars as pl
-    >>> farm_a = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
-    >>> farm_b = pl.DataFrame({'C': [7, 8, 9], 'D': [10, 11, 12]})
-    >>> data_heads([farm_a, farm_b])
+    >>> df_a = pd.DataFrame({'Column1': [1, 2, 3], 'Column2': [4, 5, 6]})
+    >>> df_b = pl.DataFrame({'Column3': [7, 8, 9], 'Column4': [10, 11, 12]})
+    >>> data_heads([df_a, df_b])
 
     Output:
     =============================== DataFrame 1 ===============================
-       A  B
-    0  1  4
-    1  2  5
-    2  3  6
+       Column1  Column2
+    0        1        4
+    1        2        5
+    2        3        6
     =============================== DataFrame 2 ===============================
     shape: (3, 2)
-    ┌─────┬─────┐
-    │ C   │ D   │
-    ├─────┼─────┤
-    │ 7   │ 10  │
-    │ 8   │ 11  │
-    │ 9   │ 12  │
-    └─────┴─────┘
+    ┌─────────┬─────────┐
+    │ Column3 │ Column4 │
+    ├─────────┼─────────┤
+    │ 7       │ 10      │
+    │ 8       │ 11      │
+    │ 9       │ 12      │
+    └─────────┴─────────┘
 
     Using a dictionary of DataFrames:
 
-    >>> dataframes_dict = {'Farm A': farm_a, 'Farm B': farm_b}
+    >>> dataframes_dict = {'Dataset A': df_a, 'Dataset B': df_b}
     >>> data_heads(dataframes_dict)
 
     Output:
-    =============================== Farm A ===============================
-       A  B
-    0  1  4
-    1  2  5
-    2  3  6
-    =============================== Farm B ===============================
+    =============================== Dataset A ===============================
+       Column1  Column2
+    0        1        4
+    1        2        5
+    2        3        6
+    =============================== Dataset B ===============================
     shape: (3, 2)
-    ┌─────┬─────┐
-    │ C   │ D   │
-    ├─────┼─────┤
-    │ 7   │ 10  │
-    │ 8   │ 11  │
-    │ 9   │ 12  │
-    └─────┴─────┘
+    ┌─────────┬─────────┐
+    │ Column3 │ Column4 │
+    ├─────────┼─────────┤
+    │ 7       │ 10      │
+    │ 8       │ 11      │
+    │ 9       │ 12      │
+    └─────────┴─────────┘
     """
     if isinstance(dataframes, dict):
         for name, df in dataframes.items():
@@ -114,7 +115,6 @@ def data_heads(dataframes: Union[List[Union[pd.DataFrame, pl.DataFrame]], Dict[s
             print(_create_centered_header(f'DataFrame {i}', separator_length))
             print(df.head())
         print("=" * separator_length)
-
 
 def _validate_dataframes(df1: DataFrameType, df2: DataFrameType) -> None:
     """
