@@ -1145,3 +1145,5 @@ class DuplicateColumnsReportFormatter(ConfigurableSplitTableFormatter):
 #     def format(self, missingness_report: Dict[str, Any]) -> str:
 #         field_format = "{missing_count:>8} | {missing_percentage:>26.1f}%"
 #         return self.format_report(missingness_report, field_format)
+class MissingnessReportFormatter:
+    pass
