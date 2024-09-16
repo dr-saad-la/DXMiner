@@ -10,14 +10,14 @@ from .report import report_missingness
 from .report import report_uniqueness
 
 __all__ = [
-		"data_info",
-		"head_tail",
-		"ntop",
-		"report_missingness",
-		"report_categoricals",
-		"report_duplicate_rows",
-		"report_uniqueness",
-		"report_duplicate_cols",
-		"formatted_report_data_profile",
-		"data_heads",
-		]
+    "data_info",
+    "head_tail",
+    "ntop",
+    "report_missingness",
+    "report_categoricals",
+    "report_duplicate_rows",
+    "report_uniqueness",
+    "report_duplicate_cols",
+    "formatted_report_data_profile",
+    "data_heads",
+]
