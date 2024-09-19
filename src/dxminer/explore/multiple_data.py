@@ -1,7 +1,9 @@
 """
     Functions related to explore multiple data frames simultaneously.
 """
-
+import itertools
+from typing import Dict
+from typing import List
 from typing import Union
 
 import pandas as pd
@@ -311,3 +313,99 @@ def compare_datasets(df1: DataFrameType, df2: DataFrameType) -> DataFrameType:
 		raise ValueError("Both datasets must be either Pandas or Polars DataFrames.")
 	
 	return comparison
+
+
+def compare_multiple_datasets(datasets: Union[List[DataFrameType], Dict[str, DataFrameType]]) -> None:
+	"""
+	Compare all combinations of multiple datasets pairwise and display the results.
+
+	This function compares multiple datasets (Pandas or Polars DataFrames) pairwise. It outputs the
+	descriptive statistics differences between the datasets. If the input is a dictionary, the keys
+	will be used as labels for the datasets.
+
+	Parameters
+	----------
+	datasets : Union[List[DataFrameType], Dict[str, DataFrameType]]
+		A list or dictionary of datasets to compare. If a dictionary is provided, the keys will be
+		used as dataset names. If a list is provided, they will be labeled generically as "Dataset 1",
+		"Dataset 2", etc.
+
+	Raises
+	------
+	ValueError
+		If the datasets parameter is neither a list nor a dictionary.
+
+	Example Usage
+	-------------
+	Example with a list of DataFrames:
+
+	>>> df1 = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+	>>> df2 = pd.DataFrame({'A': [7, 8, 9], 'B': [10, 11, 12]})
+	>>> df3 = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+	>>> compare_multiple_datasets([df1, df2, df3])
+
+	Expected Output:
+	----------------
+	Comparison between Dataset 1 and Dataset 2:
+	   A    B
+	mean  4.0  7.0
+	std   4.0  4.0
+	min   1.0  4.0
+	25%   2.0  5.0
+	50%   2.0  5.0
+	75%   3.0  6.0
+	max   7.0  12.0
+
+	Comparison between Dataset 1 and Dataset 3:
+	   A    B
+	mean  0.0  0.0
+	std   0.0  0.0
+	min   0.0  0.0
+	25%   0.0  0.0
+	50%   0.0  0.0
+	75%   0.0  0.0
+	max   0.0  0.0
+
+	Example with a dictionary of DataFrames:
+
+	>>> datasets = {
+	>>>     'Dataset A': pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
+	>>>     'Dataset B': pd.DataFrame({'A': [7, 8, 9], 'B': [10, 11, 12]}),
+	>>>     'Dataset C': pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+	>>> }
+	>>> compare_multiple_datasets(datasets)
+
+	Expected Output:
+	----------------
+	Comparison between Dataset A and Dataset B:
+	   A    B
+	mean  4.0  7.0
+	std   4.0  4.0
+	min   1.0  4.0
+	25%   2.0  5.0
+	50%   2.0  5.0
+	75%   3.0  6.0
+	max   7.0  12.0
+
+	Comparison between Dataset A and Dataset C:
+	   A    B
+	mean  0.0  0.0
+	std   0.0  0.0
+	min   0.0  0.0
+	25%   0.0  0.0
+	50%   0.0  0.0
+	75%   0.0  0.0
+	max   0.0  0.0
+	"""
+	
+	if isinstance(datasets, dict):
+		dataset_pairs = itertools.combinations(datasets.items(), 2)
+	elif isinstance(datasets, list):
+		dataset_pairs = itertools.combinations(enumerate(datasets, 1), 2)
+	else:
+		raise ValueError("Datasets must be a list or a dictionary.")
+	
+	for (label1, df1), (label2, df2) in dataset_pairs:
+		comparison_result = compare_datasets(df1, df2)
+		print(f"\nComparison between {label1} and {label2}:")
+		display_comparison(comparison_result)
