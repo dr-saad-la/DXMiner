@@ -121,3 +121,4 @@ requirements_dev.txt
 todo.rst
 ## Ignore pylint configuration
 .pylintrc
+.editorconfig
