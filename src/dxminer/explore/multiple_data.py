@@ -1,7 +1,6 @@
 """
     Functions related to explore multiple data frames simultaneously.
 """
-
 import itertools
 from typing import Dict
 from typing import List
@@ -22,17 +21,16 @@ def _create_centered_header(title: str, length: int = 80, char: str = "=") -> st
 	Parameters
 	----------
 	title : str
-					The title or name to be displayed in the center of the header.
+		The title or name to be displayed in the center of the header.
 	length : int, optional
-					The total length of the header line (default is 80).
+		The total length of the header line (default is 80).
 	char : str, optional
-					The character to use for the separator (default is '=').
+		The character to use for the separator (default is '=').
 
 	Returns
 	-------
 	str
-					A formatted string with the title centered and the separator character filling the rest of the
-					line.
+		A formatted string with the title centered and the separator character filling the rest of the line.
 
 	Example
 	-------
@@ -56,9 +54,9 @@ def data_heads(dataframes: Union[DataFrameList, DataFrameDict], separator_length
 	Parameters
 	----------
 	dataframes : Union[DataFrameList, DataFrameDict]
-					A list or dictionary of Pandas or Polars DataFrames to display.
+		A list or dictionary of Pandas or Polars DataFrames to display.
 	separator_length : int, optional
-					Length of the separator line (default is 80).
+		Length of the separator line (default is 80).
 
 	Examples
 	--------
@@ -130,16 +128,16 @@ def _validate_dataframes(df1: DataFrameType, df2: DataFrameType) -> None:
 	Parameters
 	----------
 	df1 : DataFrameType
-					The first DataFrame to validate (either Pandas or Polars).
+		The first DataFrame to validate (either Pandas or Polars).
 	df2 : DataFrameType
-					The second DataFrame to validate (either Pandas or Polars).
+		The second DataFrame to validate (either Pandas or Polars).
 
 	Raises
 	------
 	AssertionError
-					If the column names of the two DataFrames do not match.
+		If the column names of the two DataFrames do not match.
 	ValueError
-					If the two DataFrames are not of the same type (either both Pandas or both Polars).
+		If the two DataFrames are not of the same type (either both Pandas or both Polars).
 
 	Examples
 	--------
@@ -154,12 +152,10 @@ def _validate_dataframes(df1: DataFrameType, df2: DataFrameType) -> None:
 	if type(df1) != type(df2):
 		raise ValueError("Both DataFrames must be of the same type (either Pandas or Polars).")
 	
-	# Validate columns for Pandas DataFrames
 	if isinstance(df1, pd.DataFrame) and isinstance(df2, pd.DataFrame):
 		if not df1.columns.equals(df2.columns):
 			raise AssertionError("Columns do not match")
 	
-	# Validate columns for Polars DataFrames
 	elif isinstance(df1, pl.DataFrame) and isinstance(df2, pl.DataFrame):
 		if df1.columns != df2.columns:
 			raise AssertionError("Columns do not match")
@@ -172,20 +168,19 @@ def _get_num_cols(df: DataFrameType) -> DataFrameType:
 	Parameters
 	----------
 	df : DataFrameType
-					The DataFrame from which numeric columns are to be extracted. It can be either a Pandas or Polars
-					DataFrame.
+		The DataFrame from which numeric columns are to be extracted. It can be either a Pandas or Polars DataFrame.
 
 	Returns
 	-------
 	DataFrameType
-					A DataFrame containing only the numeric columns.
+		A DataFrame containing only the numeric columns.
 
 	Raises
 	------
 	ValueError
-					If no numeric columns are found in the DataFrame.
+		If no numeric columns are found in the DataFrame.
 	TypeError
-					If the input is neither a Pandas nor a Polars DataFrame.
+		If the input is neither a Pandas nor a Polars DataFrame.
 
 	Example
 	-------
@@ -240,7 +235,7 @@ def _get_descriptive_stats(df: DataFrameType) -> DataFrameType:
 					If the input DataFrame is neither a Pandas nor a Polars DataFrame.
 	"""
 	# Helper function to extract only numeric columns
-	numeric_df = _get_numeric_columns_only(df)
+	numeric_df = _get_num_cols(df)
 	
 	if isinstance(df, pd.DataFrame):
 		# Return transposed Pandas descriptive statistics for numeric columns
@@ -274,22 +269,22 @@ def compare_datasets(df1: DataFrameType, df2: DataFrameType) -> DataFrameType:
 	Parameters
 	----------
 	df1 : DataFrameType
-					The first dataset (Pandas or Polars DataFrame) to compare.
+			The first dataset (Pandas or Polars DataFrame) to compare.
 	df2 : DataFrameType
-					The second dataset (Pandas or Polars DataFrame) to compare.
+			The second dataset (Pandas or Polars DataFrame) to compare.
 
 	Returns
 	-------
 	DataFrameType
-					A DataFrame containing the difference between the descriptive statistics
-					(e.g., mean, standard deviation, min, max) of the two datasets.
+		A DataFrame containing the difference between the descriptive statistics
+		(e.g., mean, standard deviation, min, max) of the two datasets.
 
 	Raises
 	------
 	ValueError
-					If the input DataFrames are not of the same type (both Pandas or both Polars).
+		If the input DataFrames are not of the same type (both Pandas or both Polars).
 	AssertionError
-					If the columns of the two DataFrames do not match.
+		If the columns of the two DataFrames do not match.
 
 	Example
 	-------
@@ -326,7 +321,7 @@ def _display_comparison(comparison_df: DataFrameType) -> None:
 	Parameters
 	----------
 	comparison_df : DataFrameType
-																																																																	The DataFrame containing the comparison results.
+		The DataFrame containing the comparison results.
 	"""
 	print("Comparison of Datasets:")
 	print(comparison_df)
@@ -343,14 +338,14 @@ def compare_multiple_datasets(datasets: Union[List[DataFrameType], Dict[str, Dat
 	Parameters
 	----------
 	datasets : Union[List[DataFrameType], Dict[str, DataFrameType]]
-					A list or dictionary of datasets to compare. If a dictionary is provided, the keys will be
-					used as dataset names. If a list is provided, they will be labeled generically as "Dataset 1",
-					"Dataset 2", etc.
+				A list or dictionary of datasets to compare. If a dictionary is provided, the keys will be
+				used as dataset names. If a list is provided, they will be labeled generically as "Dataset 1",
+				"Dataset 2", etc.
 
 	Raises
 	------
 	ValueError
-					If the datasets parameter is neither a list nor a dictionary.
+		If the datasets parameter is neither a list nor a dictionary.
 
 	Example Usage
 	-------------
