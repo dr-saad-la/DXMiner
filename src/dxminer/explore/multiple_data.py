@@ -1,6 +1,7 @@
 """
     Functions related to explore multiple data frames simultaneously.
 """
+
 import itertools
 from typing import Dict
 from typing import List
@@ -14,23 +15,24 @@ from .._typing import DataFrameList
 from .._typing import DataFrameType
 
 
-def _create_centered_header(title: str, length: int = 80, char: str = '=') -> str:
+def _create_centered_header(title: str, length: int = 80, char: str = "=") -> str:
 	"""
 	Helper function to create a centered header with a title in the middle and a specified separator character.
 
 	Parameters
 	----------
 	title : str
-		The title or name to be displayed in the center of the header.
+					The title or name to be displayed in the center of the header.
 	length : int, optional
-		The total length of the header line (default is 80).
+					The total length of the header line (default is 80).
 	char : str, optional
-		The character to use for the separator (default is '=').
+					The character to use for the separator (default is '=').
 
 	Returns
 	-------
 	str
-		A formatted string with the title centered and the separator character filling the rest of the line.
+					A formatted string with the title centered and the separator character filling the rest of the
+					line.
 
 	Example
 	-------
@@ -54,9 +56,9 @@ def data_heads(dataframes: Union[DataFrameList, DataFrameDict], separator_length
 	Parameters
 	----------
 	dataframes : Union[DataFrameList, DataFrameDict]
-		A list or dictionary of Pandas or Polars DataFrames to display.
+					A list or dictionary of Pandas or Polars DataFrames to display.
 	separator_length : int, optional
-		Length of the separator line (default is 80).
+					Length of the separator line (default is 80).
 
 	Examples
 	--------
@@ -128,16 +130,16 @@ def _validate_dataframes(df1: DataFrameType, df2: DataFrameType) -> None:
 	Parameters
 	----------
 	df1 : DataFrameType
-		The first DataFrame to validate (either Pandas or Polars).
+					The first DataFrame to validate (either Pandas or Polars).
 	df2 : DataFrameType
-		The second DataFrame to validate (either Pandas or Polars).
+					The second DataFrame to validate (either Pandas or Polars).
 
 	Raises
 	------
 	AssertionError
-		If the column names of the two DataFrames do not match.
+					If the column names of the two DataFrames do not match.
 	ValueError
-		If the two DataFrames are not of the same type (either both Pandas or both Polars).
+					If the two DataFrames are not of the same type (either both Pandas or both Polars).
 
 	Examples
 	--------
@@ -170,19 +172,20 @@ def _get_num_cols(df: DataFrameType) -> DataFrameType:
 	Parameters
 	----------
 	df : DataFrameType
-		The DataFrame from which numeric columns are to be extracted. It can be either a Pandas or Polars DataFrame.
+					The DataFrame from which numeric columns are to be extracted. It can be either a Pandas or Polars
+					DataFrame.
 
 	Returns
 	-------
 	DataFrameType
-		A DataFrame containing only the numeric columns.
+					A DataFrame containing only the numeric columns.
 
 	Raises
 	------
 	ValueError
-		If no numeric columns are found in the DataFrame.
+					If no numeric columns are found in the DataFrame.
 	TypeError
-		If the input is neither a Pandas nor a Polars DataFrame.
+					If the input is neither a Pandas nor a Polars DataFrame.
 
 	Example
 	-------
@@ -222,18 +225,19 @@ def _get_descriptive_stats(df: DataFrameType) -> DataFrameType:
 	Parameters
 	----------
 	df : DataFrameType
-		The DataFrame to calculate descriptive statistics for. Can be either a Pandas or Polars DataFrame.
+					The DataFrame to calculate descriptive statistics for. Can be either a Pandas or Polars DataFrame.
 
 	Returns
 	-------
 	DataFrameType
-		A DataFrame containing the transposed descriptive statistics for numeric columns in the input DataFrame.
-		The statistics include measures like mean, std, min, max, and percentiles.
+					A DataFrame containing the transposed descriptive statistics for numeric columns in the input
+					DataFrame.
+					The statistics include measures like mean, std, min, max, and percentiles.
 
 	Raises
 	------
 	ValueError
-		If the input DataFrame is neither a Pandas nor a Polars DataFrame.
+					If the input DataFrame is neither a Pandas nor a Polars DataFrame.
 	"""
 	# Helper function to extract only numeric columns
 	numeric_df = _get_numeric_columns_only(df)
@@ -270,29 +274,29 @@ def compare_datasets(df1: DataFrameType, df2: DataFrameType) -> DataFrameType:
 	Parameters
 	----------
 	df1 : DataFrameType
-		The first dataset (Pandas or Polars DataFrame) to compare.
+					The first dataset (Pandas or Polars DataFrame) to compare.
 	df2 : DataFrameType
-		The second dataset (Pandas or Polars DataFrame) to compare.
+					The second dataset (Pandas or Polars DataFrame) to compare.
 
 	Returns
 	-------
 	DataFrameType
-		A DataFrame containing the difference between the descriptive statistics
-		(e.g., mean, standard deviation, min, max) of the two datasets.
+					A DataFrame containing the difference between the descriptive statistics
+					(e.g., mean, standard deviation, min, max) of the two datasets.
 
 	Raises
 	------
 	ValueError
-		If the input DataFrames are not of the same type (both Pandas or both Polars).
+					If the input DataFrames are not of the same type (both Pandas or both Polars).
 	AssertionError
-		If the columns of the two DataFrames do not match.
+					If the columns of the two DataFrames do not match.
 
 	Example
 	-------
 	>>> df1 = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
 	>>> df2 = pd.DataFrame({'A': [1, 1, 2], 'B': [3, 5, 7]})
 	>>> compare_datasets(df1, df2)
-		  mean  std  min  max
+					  mean  std  min  max
 	A     0.33  0.2  1.0  1.0
 	B     1.0   0.0  0.0  1.0
 	"""
@@ -315,6 +319,19 @@ def compare_datasets(df1: DataFrameType, df2: DataFrameType) -> DataFrameType:
 	return comparison
 
 
+def _display_comparison(comparison_df: DataFrameType) -> None:
+	"""
+	Display the comparison results.
+
+	Parameters
+	----------
+	comparison_df : DataFrameType
+																																																																	The DataFrame containing the comparison results.
+	"""
+	print("Comparison of Datasets:")
+	print(comparison_df)
+
+
 def compare_multiple_datasets(datasets: Union[List[DataFrameType], Dict[str, DataFrameType]]) -> None:
 	"""
 	Compare all combinations of multiple datasets pairwise and display the results.
@@ -326,14 +343,14 @@ def compare_multiple_datasets(datasets: Union[List[DataFrameType], Dict[str, Dat
 	Parameters
 	----------
 	datasets : Union[List[DataFrameType], Dict[str, DataFrameType]]
-		A list or dictionary of datasets to compare. If a dictionary is provided, the keys will be
-		used as dataset names. If a list is provided, they will be labeled generically as "Dataset 1",
-		"Dataset 2", etc.
+					A list or dictionary of datasets to compare. If a dictionary is provided, the keys will be
+					used as dataset names. If a list is provided, they will be labeled generically as "Dataset 1",
+					"Dataset 2", etc.
 
 	Raises
 	------
 	ValueError
-		If the datasets parameter is neither a list nor a dictionary.
+					If the datasets parameter is neither a list nor a dictionary.
 
 	Example Usage
 	-------------
@@ -408,4 +425,4 @@ def compare_multiple_datasets(datasets: Union[List[DataFrameType], Dict[str, Dat
 	for (label1, df1), (label2, df2) in dataset_pairs:
 		comparison_result = compare_datasets(df1, df2)
 		print(f"\nComparison between {label1} and {label2}:")
-		display_comparison(comparison_result)
+		_display_comparison(comparison_result)
