@@ -21,7 +21,7 @@ def data_info(df, banner_text: str = "DataFrame Information"):
     This function provides a formatted overview of a given DataFrame, with
     additional headers and footers for clarity.
     It supports both Pandas and Polars DataFrames, ensuring that the
-    appropriatesummary information is displayed based
+    appropriate summary information is displayed based
     on the input type. If the DataFrame is of an unsupported type, a
     ValueError is raised.
 
@@ -32,18 +32,18 @@ def data_info(df, banner_text: str = "DataFrame Information"):
     Parameters
     ----------
     df : pd.DataFrame or pl.DataFrame
-                                                                                                                                    The DataFrame to display information about. The DataFrame can be either
-                                                                                                                                    a Pandas or Polars DataFrame.
+        The DataFrame to display information about. The DataFrame can be either
+        a Pandas or Polars DataFrame.
     banner_text : str, optional
-                                                                                                                                    The text to display in the banner (default is "DataFrame Information").
-                                                                                                                                    This will be centered in a banner displayed at the top and bottom of
-                                                                                                                                    the information summary.
+        The text to display in the banner (default is "DataFrame Information").
+        This will be centered in a banner displayed at the top and bottom of
+        the information summary.
 
     Raises
     ------
     ValueError
-                                                                                                                                    Raised if the input data is neither a Pandas DataFrame nor a Polars
-                                                                                                                                    DataFrame.
+        Raised if the input data is neither a Pandas DataFrame nor a Polars
+        DataFrame.
 
     Notes
     -----
@@ -94,6 +94,7 @@ def data_info(df, banner_text: str = "DataFrame Information"):
         buffer = io.StringIO()
         df.info(buf=buffer)
         print(buffer.getvalue())
+
     elif df_type == "polars":
         print(f"shape: {df.shape}")
         print(df.describe())
@@ -109,13 +110,13 @@ def _check_dtype(df):
     Parameters
     ----------
     df : Any
-                                                                                                                                    The input data to check.
+            The input data to check.
 
     Returns
     -------
     str
-                                                                                                                                    A string indicating whether the data is a Pandas DataFrame, Polars
-                                                                                                                                    DataFrame, or invalid.
+        A string indicating whether the data is a Pandas DataFrame, Polars
+        DataFrame, or invalid.
     """
     if isinstance(df, pd.DataFrame):
         return "pandas"
@@ -140,8 +141,8 @@ def head_tail(
         ]
     ] = None,
     select_cols: Optional[Union[str, List[str]]] = None,
-    handle_na: Optional[str] = None,
-    # Options: 'drop', 'fill'
+    handle_na: Optional[str] = None,  # Options: 'drop',
+    # 'fill'
     fill_value: Optional[Union[int, float, str]] = None,
     display_width: Optional[int] = None,
     verbose: bool = True,
@@ -154,43 +155,43 @@ def head_tail(
     Parameters
     ----------
     df : pd.DataFrame or pl.DataFrame
-                                                                                                                                    The DataFrame to display.
+        The DataFrame to display.
     n : int, optional
-                                                                                                                                    Number of rows to display from the start and end of the DataFrame.
-                                                                                                                                    Default is 5.
+        Number of rows to display from the start and end of the DataFrame.
+        Default is 5.
     sort : bool, optional
-                                                                                                                                    Whether to sort the DataFrame before displaying. Default is False.
+        Whether to sort the DataFrame before displaying. Default is False.
     cols : str or list of str, optional
-                                                                                                                                    The column(s) to sort by if sorting is enabled. If not provided and
-                                                                                                                                    `sort` is True, raises ValueError.
+        The column(s) to sort by if sorting is enabled. If not provided and
+        `sort` is True, raises ValueError.
     sort_ascending : bool or list of bool, optional
-                                                                                                                                    Sort order for each column in `cols`. If a single bool, applies to all
-                                                                                                                                    `cols`. If a list, each entry corresponds to each column. Default is
-                                                                                                                                    True.
+        Sort order for each column in `cols`. If a single bool, applies to all
+        `cols`. If a list, each entry corresponds to each column. Default is
+       True.
     filter_funcs : list of callable, optional
-                                                                                                                                    A list of functions to filter the DataFrame before displaying. Each
-                                                                                                                                    function should take a DataFrame as input and return a filtered
-                                                                                                                                    DataFrame.
+           A list of functions to filter the DataFrame before displaying. Each
+           function should take a DataFrame as input and return a filtered
+          DataFrame.
     select_cols: str or list of str, optional
-                                                                                                                                    Column(s) to display. If not provided, all columns are displayed.
+          Column(s) to display. If not provided, all columns are displayed.
     handle_na: str, optional
-                                                                                                                                    How to handle NaN values. Options are 'drop' to remove NaNs or 'fill'
-                                                                                                                                    to fill NaNs with a specified value. Default is None.
+          How to handle NaN values. Options are 'drop' to remove NaNs or 'fill'
+          to fill NaNs with a specified value. Default is None.
     fill_value: int, float, or str, optional
-                                                                                                                                    The value to fill NaN with if `handle_na` is 'fill'. Default is None.
+          The value to fill NaN with if `handle_na` is 'fill'. Default is None.
     display_width: int, optional
-                                                                                                                                    The maximum number of columns to display. If not provided, all columns
-                                                                                                                                    are displayed.
+          The maximum number of columns to display. If not provided, all columns
+          are displayed.
     verbose : bool, optional
-                                                                                                                                    If True, prints the head and tail of the DataFrame. If False,
-                                                                                                                                    suppresses output. Default is True.
+         If True, prints the head and tail of the DataFrame. If False,
+         suppresses output. Default is True.
     save_output : str, optional
-                                                                                                                                    Path to save the output as a CSV or Excel file. Default is None.
+         Path to save the output as a CSV or Excel file. Default is None.
 
     Raises
     ------
     ValueError
-                                                                                                                                    If `sort` is True and `cols` is not provided.
+    If `sort` is True and `cols` is not provided.
 
     Returns
     -------
@@ -274,48 +275,48 @@ def ntop(
     save_output: Optional[str] = None,
 ) -> None:
     """
-    Display the top `n` rows of the DataFrame, sorted by the specified columns in descending order by default.
+     Display the top `n` rows of the DataFrame, sorted by the specified columns in descending order by default.
 
-    Parameters
-    ----------
-    df : pd.DataFrame or pl.DataFrame
-                                                                                                                                    The DataFrame to display.
-    n : int, optional
-                                                                                                                                    Number of rows to display. Default is 5.
-    cols : str or list of str, optional
-                                                                                                                                    The column(s) to sort by. If not provided, raises ValueError.
-    ascending : bool, optional
-                                                                                                                                    If True, sort in ascending order (default is False, which means descending order).
-    display_width : int, optional
-                                                                                                                                    The maximum number of columns to display. If not provided, all columns are displayed.
-    verbose : bool, optional
-                                                                                                                                    If True, prints the top `n` rows of the DataFrame. If False, suppresses output. Default is True.
-    save_output : str, optional
-                                                                                                                                    Path to save the output as a CSV or Excel file. Default is None.
+     Parameters
+     ----------
+     df : pd.DataFrame or pl.DataFrame
+         The DataFrame to display.
+     n : int, optional
+         Number of rows to display. Default is 5.
+     cols : str or list of str, optional
+        The column(s) to sort by. If not provided, raises ValueError.
+     ascending : bool, optional
+        If True, sort in ascending order (default is False, which means descending order).
+     display_width : int, optional
+        The maximum number of columns to display. If not provided, all columns are displayed.
+     verbose : bool, optional
+        If True, prints the top `n` rows of the DataFrame. If False, suppresses output. Default is True.
+     save_output : str, optional
+        Path to save the output as a CSV or Excel file. Default is None.
 
-    Raises
-    ------
-    ValueError
-                                                                                                                                    If `cols` is not provided.
+     Raises
+     ------
+     ValueError
+    If `cols` is not provided.
 
-    Returns
-    -------
-    None
+     Returns
+     -------
+     None
 
-    Example
-    -------
-    >>> import pandas as pd
-    >>> df = pd.DataFrame({
-    >>>     'A': [1, 2, 3, 4, 5],
-    >>>     'B': [10, 20, 30, 40, 50],
-    >>>     'C': ['a', 'b', 'c', 'd', 'e']
-    >>> })
-    >>>
-    >>> ntop(df, n=3, cols='B', ascending=False)
-    Showing top 3 highest rows based on B
-    >>>
-    >>> ntop(df, n=3, cols='B', ascending=True)
-    Showing top 3 lowest rows based on B
+     Example
+     -------
+     >>> import pandas as pd
+     >>> df = pd.DataFrame({
+     >>>     'A': [1, 2, 3, 4, 5],
+     >>>     'B': [10, 20, 30, 40, 50],
+     >>>     'C': ['a', 'b', 'c', 'd', 'e']
+     >>> })
+     >>>
+     >>> ntop(df, n=3, cols='B', ascending=False)
+     Showing top 3 highest rows based on B
+     >>>
+     >>> ntop(df, n=3, cols='B', ascending=True)
+     Showing top 3 lowest rows based on B
     """
     if not cols:
         raise ValueError("`cols` must be provided for sorting.")
